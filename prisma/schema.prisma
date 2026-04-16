@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+    id String @id @default(cuid())
+    email String @unique
+    name String?
+    createdAt DateTime @default(now())
+    sessions Session[]
+    concepts ConceptNode[]
+}
+
+model ConceptNode {
+    id String @id @default(cuid())
+    userId String
+    user User @relation(fields: [userId], references: [id])
+    topic String
+    parentTopic String?
+    mastery Float @default(0.0)
+    difficultyTier String @default("foundation") // foundation | working | deep | a
+    lastReviewed DateTime?
+    reviewInterval Int @default(1) // days, SM-2 interval
+    easeFactor Float @default(2.5) // SM-2 ease factor
+    exposureCount Int @default(0)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    quizResults QuizResult[]
+    @@unique([userId, topic])
+    @@index([userId, mastery])
+    @@index([userId, lastReviewed])
+}
+
+model Session {
+    id String @id @default(cuid())
+    userId String
+    user User @relation(fields: [userId], references: [id])
+    goal String
+    mode String @default("TEACH") // TEACH | QUIZ | SOCRATIC | REVIEW
+    messages Json // Array of { role, content, mode, timestamp }
+    conceptsHit String[] // concept IDs touched in this session
+    startedAt DateTime @default(now())
+    endedAt DateTime?
+}
+
+model QuizResult {
+    id String @id @default(cuid())
+    conceptId String
+    concept ConceptNode @relation(fields: [conceptId], references: [id])
+    score Float // 0.0 - 1.0
+    confidence String? // "low" | "medium" | "high" (self-reported)
+    question String
+    answer String
+    feedback String
+    createdAt DateTime @default(now())
+}
