@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD: Cortex — AI-Powered Active Learning Layer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --text: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --bg: #ffffff;
+    --bg-code: #f5f5f5;
+    --border: #e0e0e0;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.7;
+    font-size: 15px;
+    display: flex;
+    margin: 0;
+    padding: 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 220px;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 2rem 0 2rem 1.25rem;
+    border-right: 1px solid var(--border);
+    background: var(--bg-code);
+    z-index: 100;
+  }
+  .sidebar-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    padding-right: 1rem;
+  }
+  .sidebar a {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 0.3rem 1rem 0.3rem 0.6rem;
+    border-left: 2px solid transparent;
+    margin-bottom: 0.1rem;
+    line-height: 1.4;
+    transition: all 0.12s ease;
+  }
+  .sidebar a:hover {
+    color: var(--text);
+    background: rgba(0,0,0,0.03);
+  }
+  .sidebar a.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    font-weight: 500;
+    background: var(--accent-light);
+  }
+  .sidebar .nav-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.6rem 1rem 0.6rem 0.6rem;
+  }
+
+  .main-content {
+    margin-left: 220px;
+    max-width: 860px;
+    padding: 3rem 2rem 6rem;
+    width: 100%;
+  }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main-content { margin-left: 0; }
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--text);
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  p { margin-bottom: 1rem; }
+
+  .meta {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+    line-height: 1.9;
+  }
+  .meta strong { color: var(--text); }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2.5rem 0;
+  }
+
+  ul, ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+  li { margin-bottom: 0.4rem; }
+  li ul { margin-top: 0.4rem; }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; }
+
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.88em;
+    background: var(--bg-code);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: #000000;
+  }
+
+  pre {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    line-height: 1.6;
+    color: #000000;
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: inherit;
+    color: #000000;
+  }
+
+  blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1.5rem;
+    background: var(--accent-light);
+    font-style: italic;
+  }
+  blockquote p { margin-bottom: 0; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--text);
+    background: var(--bg-code);
+  }
+  td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .closing {
+    margin-top: 3rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+    padding-top: 1.5rem;
+  }
+
+  /* === Checklist Styles === */
+  .phase-hours {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+  }
+
+  .progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .progress-bar-track {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-code);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .progress-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .checklist {
+    margin-bottom: 1.5rem;
+  }
+
+  .task-item {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    background: var(--bg);
+    transition: border-color 0.15s ease;
+  }
+  .task-item:hover { border-color: #bbb; }
+  .task-item.done { opacity: 0.55; }
+  .task-item.done .task-label { text-decoration: line-through; }
+
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.85rem;
+  }
+
+  .task-check {
+    position: relative;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .task-check input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .checkmark {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .task-check input:checked + .checkmark {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .task-check input:checked + .checkmark::after {
+    content: '';
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+  }
+
+  .task-label {
+    flex: 1;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .task-hours {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    background: var(--bg-code);
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+  }
+
+  .note-toggle {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1;
+  }
+  .note-toggle:hover { background: var(--bg-code); }
+  .note-toggle.open {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .task-notes {
+    display: none;
+    width: calc(100% - 1.7rem);
+    margin: 0 0.85rem 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg-code);
+    resize: vertical;
+    min-height: 60px;
+    outline: none;
+  }
+  .task-notes:focus { border-color: var(--accent); }
+  .task-notes.visible { display: block; }
+
+  .save-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    padding: 0.3em 0.7em;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+  .save-btn:hover { background: var(--bg-code); border-color: #bbb; }
+  .save-btn:active { background: var(--accent-light); border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="sidebar-title">Cortex PRD</div>
+  <a href="#problem">1. Problem Statement</a>
+  <a href="#vision">2. Product Vision</a>
+  <a href="#user">3. Target User</a>
+  <a href="#features">4. Core Features</a>
+  <a href="#architecture">5. Architecture</a>
+  <a href="#decisions">6. Decisions &amp; Tradeoffs</a>
+  <div class="nav-divider"></div>
+  <a href="#devplan">7. Development Plan</a>
+  <div class="nav-divider"></div>
+  <a href="#risks">8. Risk Register</a>
+  <a href="#metrics">9. Success Metrics</a>
+  <a href="#roadmap">10. Future Roadmap</a>
+  <a href="#questions">11. Open Questions</a>
+  <a href="#landscape">12. Competitive Landscape</a>
+</nav>
+
+<div class="main-content">
+
+<h1>PRD: Cortex — AI-Powered Active Learning Layer</h1>
+<div class="meta">
+  <strong>Author:</strong> Muhaiminul Islam<br>
+  <strong>Version:</strong> 1.0<br>
+  <strong>Date:</strong> April 16, 2026<br>
+  <strong>Status:</strong> Draft<br>
+  <strong>Timeline:</strong> 2 weeks (April 21 – May 2, 2026)
+</div>
+
+<hr>
+
+<h2 id="problem">1. Problem Statement</h2>
+
+<p>Current LLM chat interfaces (ChatGPT, Claude.ai, Gemini) are stateless Q&amp;A pipes. A user asks, the model answers, and the interaction ends. This is a fundamentally broken model for <em>learning</em>:</p>
+
+<ul>
+  <li><strong>No retention loop.</strong> The user reads a response and forgets 80% within 48 hours (Ebbinghaus curve). There is no mechanism for spaced recall.</li>
+  <li><strong>Passive consumption.</strong> Chat encourages reading, not doing. The learner never has to reconstruct knowledge — they just receive it.</li>
+  <li><strong>No structure.</strong> There's no concept map, no dependency graph, no sense of "what you know" vs. "what you don't." The user is responsible for all metacognition.</li>
+  <li><strong>Flat difficulty.</strong> The model doesn't calibrate to the learner's actual understanding. A PhD and a freshman get the same response to the same prompt.</li>
+</ul>
+
+<p>These are solved problems in learning science. Spaced repetition, active recall, Socratic questioning, mastery-based progression, and interleaving have decades of evidence behind them. No product currently bridges the gap between LLM capability and pedagogical rigor.</p>
+
+<p><strong>Cortex</strong> is that bridge.</p>
+
+<hr>
+
+<h2 id="vision">2. Product Vision</h2>
+
+<p>An AI learning layer that wraps any LLM API (Claude as primary, model-agnostic by design) and transforms passive chat into structured, adaptive, recall-driven learning sessions. The user doesn't "chat with AI" — they <em>learn through AI</em>, with the system orchestrating the pedagogy invisibly.</p>
+
+<h3>Core Thesis</h3>
+
+<blockquote><p>The LLM is the knowledge engine. Cortex is the learning engine. Separation of concerns.</p></blockquote>
+
+<p>The LLM generates content, explanations, analogies, and assessments. Cortex decides <em>when</em> to explain, <em>when</em> to quiz, <em>when</em> to revisit, <em>what</em> difficulty to use, and <em>how</em> to connect new knowledge to existing knowledge — all driven by a learner model that updates in real time.</p>
+
+<hr>
+
+<h2 id="user">3. Target User</h2>
+
+<p><strong>Primary:</strong> Self-directed learners studying technical subjects (programming, embedded systems, math, EE, physics, system design). Adults who know <em>what</em> they want to learn but lack structure and retention.</p>
+
+<p><strong>Secondary:</strong> Students supplementing coursework. Interview preppers. Career-switchers building new domain knowledge.</p>
+
+<p><strong>Anti-user:</strong> Someone who wants a quick factual answer. That's what vanilla Claude is for. Cortex is for when you want to <em>own</em> the knowledge.</p>
+
+<hr>
+
+<h2 id="features">4. Core Feature Set (MVP — 2-Week Scope)</h2>
+
+<h3>4.1 Learning Sessions (not chats)</h3>
+
+<p>The fundamental interaction model is a <strong>session</strong>, not a conversation. A session has:</p>
+
+<ul>
+  <li>A declared <strong>topic</strong> or <strong>learning goal</strong> (user-provided or AI-suggested)</li>
+  <li>A <strong>mode</strong> that the system manages dynamically:
+    <ul>
+      <li><code>TEACH</code> — The AI explains a concept. Used when the learner model shows no prior exposure.</li>
+      <li><code>QUIZ</code> — The AI poses a question and evaluates the learner's answer. Used to test retention.</li>
+      <li><code>SOCRATIC</code> — The AI asks leading questions to guide the learner toward a conclusion. Used for deeper understanding.</li>
+      <li><code>REVIEW</code> — The AI resurfaces previously-learned concepts due for spaced repetition.</li>
+    </ul>
+  </li>
+  <li>A <strong>difficulty tier</strong> (<code>foundation</code> → <code>working</code> → <code>deep</code> → <code>applied</code>) that adapts based on quiz performance.</li>
+</ul>
+
+<p>The user sees a clean interface. They don't see mode labels or difficulty tiers — the system manages transitions silently. The experience feels like a great tutor: sometimes it explains, sometimes it asks, sometimes it pushes.</p>
+
+<h3>4.2 Learner Model (Knowledge Graph)</h3>
+
+<p>A lightweight per-user knowledge representation:</p>
+
+<pre><code>ConceptNode {
+  id: string
+  topic: string              // e.g., "Pointers in C"
+  parent_topic: string       // e.g., "Memory Management"
+  mastery: float [0.0–1.0]   // computed from quiz performance + decay
+  last_reviewed: timestamp
+  review_interval: duration   // SM-2 algorithm interval
+  exposure_count: int
+  difficulty_tier: enum
+}</code></pre>
+
+<ul>
+  <li><strong>Mastery decays over time</strong> using a simplified SM-2 spaced repetition curve.</li>
+  <li><strong>Mastery increases</strong> when the user answers quiz questions correctly.</li>
+  <li><strong>Mastery decreases</strong> on incorrect answers, scaling by confidence (if the user was confident and wrong, mastery drops more).</li>
+  <li>The graph is built incrementally — Cortex extracts concepts from every session and upserts nodes.</li>
+</ul>
+
+<p>This is the product's moat. Every session makes the system smarter about <em>this specific learner</em>.</p>
+
+<h3>4.3 Session Orchestrator (The Brain)</h3>
+
+<p>A middleware layer (not the LLM — deterministic logic) that decides:</p>
+
+<ol>
+  <li><strong>What to teach next.</strong> Based on the knowledge graph: prioritize low-mastery prerequisites, then introduce new concepts, then review due items.</li>
+  <li><strong>What mode to use.</strong> New concept → <code>TEACH</code>. Seen before, mastery &lt; 0.4 → <code>SOCRATIC</code>. Mastery 0.4–0.7 → <code>QUIZ</code>. Due for review → <code>REVIEW</code>.</li>
+  <li><strong>What difficulty to set.</strong> Maps directly from the concept's <code>difficulty_tier</code>.</li>
+  <li><strong>When to transition.</strong> After 2–3 exchanges in TEACH mode, shift to QUIZ. After a successful QUIZ, advance difficulty or move to the next concept.</li>
+</ol>
+
+<p>The orchestrator constructs the LLM prompt dynamically. The user never writes a system prompt — Cortex builds it.</p>
+
+<h3>4.4 Prompt Engineering Layer</h3>
+
+<p>The orchestrator outputs structured system prompts to the LLM. Examples:</p>
+
+<p><strong>TEACH mode prompt (simplified):</strong></p>
+<pre><code>You are tutoring a learner on [TOPIC]. Their current mastery level is [TIER].
+Explain [CONCEPT] at the [TIER] level. Use concrete examples.
+Do not cover [PREREQUISITE CONCEPTS] — the learner already knows these.
+After explaining, ask one comprehension check question.
+Respond in JSON: { "explanation": "...", "check_question": "...", "concepts_introduced": [...] }</code></pre>
+
+<p><strong>QUIZ mode prompt (simplified):</strong></p>
+<pre><code>Generate a [DIFFICULTY] question testing [CONCEPT].
+The learner has seen this concept [N] times and last scored [X].
+Include a grading rubric. After the learner answers, score 0.0–1.0 with reasoning.
+Respond in JSON: { "question": "...", "rubric": "...", "hints": [...] }</code></pre>
+
+<p>All LLM responses are <strong>structured JSON</strong>. The UI renders them. The LLM never directly controls the UI — it provides data, Cortex renders it. This keeps the experience predictable and debuggable.</p>
+
+<h3>4.5 Dashboard</h3>
+
+<ul>
+  <li><strong>Topic map</strong>: Visual representation of the knowledge graph. Nodes colored by mastery (red → yellow → green). Clickable to start a session on that topic.</li>
+  <li><strong>Review queue</strong>: Concepts due for review today, ranked by urgency.</li>
+  <li><strong>Session history</strong>: Past sessions with timestamps and mastery deltas.</li>
+  <li><strong>Streak / stats</strong>: Daily streak, total concepts learned, average mastery.</li>
+</ul>
+
+<h3>4.6 Out of Scope (v1)</h3>
+
+<ul>
+  <li>Multi-user / collaborative learning</li>
+  <li>Mobile app (responsive web only)</li>
+  <li>Offline mode</li>
+  <li>Image/diagram generation within sessions</li>
+  <li>PDF/document ingestion as learning material (future: huge feature)</li>
+  <li>LTI integration (LMS platforms)</li>
+  <li>Voice interaction</li>
+</ul>
+
+<hr>
+
+<h2 id="architecture">5. Technical Architecture</h2>
+
+<h3>5.1 Stack</h3>
+
+<table>
+  <thead>
+    <tr><th>Layer</th><th>Technology</th><th>Rationale</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Frontend</strong></td><td>Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui</td><td>Server components for performance, strong typing, rapid UI dev. Known stack.</td></tr>
+    <tr><td><strong>Backend</strong></td><td>Next.js API Routes + Server Actions</td><td>Monorepo simplicity. No need for a separate backend service at this scale.</td></tr>
+    <tr><td><strong>Database</strong></td><td>PostgreSQL (via Supabase or Neon)</td><td>Relational data (users, concepts, sessions) with JSONB for flexible schema. Free tier sufficient for MVP.</td></tr>
+    <tr><td><strong>ORM</strong></td><td>Prisma</td><td>Type-safe queries, migration management, known tooling.</td></tr>
+    <tr><td><strong>LLM Provider</strong></td><td>Anthropic API (Claude Sonnet 4)</td><td>Best reasoning quality per dollar. Structured JSON output via system prompts.</td></tr>
+    <tr><td><strong>LLM Abstraction</strong></td><td>Vercel AI SDK (<code>ai</code> package)</td><td>Streaming support, provider-agnostic interface, easy swap to OpenAI/Gemini later.</td></tr>
+    <tr><td><strong>Auth</strong></td><td>Supabase Auth or NextAuth.js</td><td>Session-based auth. Email/password + GitHub OAuth. Minimal config.</td></tr>
+    <tr><td><strong>State Management</strong></td><td>React Context + SWR (or TanStack Query)</td><td>Server state caching + optimistic UI updates. No Redux overhead.</td></tr>
+    <tr><td><strong>Deployment</strong></td><td>Vercel</td><td>Zero-config Next.js deploys. Preview branches. Edge functions if needed.</td></tr>
+    <tr><td><strong>Spaced Repetition</strong></td><td>Custom SM-2 implementation (&lt; 100 LOC)</td><td>No library needed. SM-2 is a simple algorithm.</td></tr>
+  </tbody>
+</table>
+
+<h3>5.2 Data Model (Prisma Schema — Core Tables)</h3>
+
+<pre><code>model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  sessions  Session[]
+  concepts  ConceptNode[]
+}
+
+model ConceptNode {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  topic           String
+  parentTopic     String?
+  mastery         Float    @default(0.0)
+  difficultyTier  String   @default("foundation") // foundation | working | deep | applied
+  lastReviewed    DateTime?
+  reviewInterval  Int      @default(1) // days, SM-2 interval
+  easeFactor      Float    @default(2.5) // SM-2 ease factor
+  exposureCount   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  quizResults     QuizResult[]
+
+  @@unique([userId, topic])
+  @@index([userId, mastery])
+  @@index([userId, lastReviewed])
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  goal        String
+  mode        String   @default("TEACH") // TEACH | QUIZ | SOCRATIC | REVIEW
+  messages    Json     // Array of { role, content, mode, timestamp }
+  conceptsHit String[] // concept IDs touched in this session
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+}
+
+model QuizResult {
+  id          String   @id @default(cuid())
+  conceptId   String
+  concept     ConceptNode @relation(fields: [conceptId], references: [id])
+  score       Float    // 0.0 - 1.0
+  confidence  String?  // "low" | "medium" | "high" (self-reported)
+  question    String
+  answer      String
+  feedback    String
+  createdAt   DateTime @default(now())
+}</code></pre>
+
+<h3>5.3 System Architecture</h3>
+
+<pre><code>┌─────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js)                │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
+│  │ Session  │  │Dashboard │  │  Topic Map (d3)   │  │
+│  │   View   │  │  View    │  │                   │  │
+│  └────┬─────┘  └────┬─────┘  └───────┬───────────┘  │
+│       │              │                │              │
+│       └──────────────┼────────────────┘              │
+│                      │                               │
+├──────────────────────┼───────────────────────────────┤
+│              SERVER ACTIONS / API ROUTES              │
+│                      │                               │
+│  ┌───────────────────┼────────────────────────┐      │
+│  │         SESSION ORCHESTRATOR               │      │
+│  │                                            │      │
+│  │  ┌────────────┐  ┌──────────────────────┐  │      │
+│  │  │ Mode       │  │  Prompt Constructor  │  │      │
+│  │  │ Selector   │  │  (builds LLM prompt  │  │      │
+│  │  │            │  │   from learner state)│  │      │
+│  │  └──────┬─────┘  └──────────┬───────────┘  │      │
+│  │         │                   │              │      │
+│  │  ┌──────┴───────────────────┴───────────┐  │      │
+│  │  │         LEARNER MODEL ENGINE         │  │      │
+│  │  │  - SM-2 scheduler                    │  │      │
+│  │  │  - Mastery calculator                │  │      │
+│  │  │  - Concept extractor (LLM-assisted)  │  │      │
+│  │  └──────────────────────────────────────┘  │      │
+│  └────────────────────────────────────────────┘      │
+│                      │                               │
+├──────────────────────┼───────────────────────────────┤
+│                      ▼                               │
+│  ┌──────────────┐   ┌──────────────────────┐         │
+│  │  PostgreSQL  │   │   Anthropic API      │         │
+│  │  (Supabase)  │   │   (Claude Sonnet 4)  │         │
+│  └──────────────┘   └──────────────────────┘         │
+└─────────────────────────────────────────────────────┘</code></pre>
+
+<hr>
+
+<h2 id="decisions">6. Key Technical Decisions &amp; Tradeoffs</h2>
+
+<h3>LLM-as-data-source, not LLM-as-controller</h3>
+
+<p>The LLM never decides what happens next. It generates content within constraints the orchestrator sets. This is a deliberate architectural decision:</p>
+
+<ul>
+  <li><strong>Predictability.</strong> Deterministic orchestration means the learning flow is testable and debuggable.</li>
+  <li><strong>Cost control.</strong> The orchestrator can batch, cache, and skip LLM calls when it has enough data.</li>
+  <li><strong>Portability.</strong> Swap Claude for GPT-4o or Gemini without changing any learning logic.</li>
+</ul>
+
+<h3>Structured JSON output over free-text</h3>
+
+<p>Every LLM response is parsed JSON. The UI renders structured data, not raw markdown. Benefits: consistent UX, extractable concepts/scores, no prompt injection into the UI. Cost: slightly more complex prompts, occasional parse failures (mitigate with retry + fallback).</p>
+
+<h3>SM-2 over more complex SRS algorithms</h3>
+
+<p>SM-2 (SuperMemo 2) is the simplest well-validated spaced repetition algorithm. FSRS and SM-18 are more accurate but add complexity without meaningful MVP benefit. SM-2 is ~50 lines of code and well-understood. Upgrade path is clear if needed.</p>
+
+<h3>Monorepo over microservices</h3>
+
+<p>At this scale (single developer, 2-week build, &lt;1000 users at launch), a monorepo Next.js app with API routes is the right call. Microservices would add deployment complexity, network latency, and debugging overhead with zero benefit.</p>
+
+<h3>PostgreSQL over SQLite</h3>
+
+<p>SQLite would work for a single-user prototype but doesn't support concurrent connections in serverless (Vercel). PostgreSQL via Supabase/Neon gives us a managed database with connection pooling, free tier, and a migration path to production.</p>
+
+<hr>
+
+<h2 id="devplan">7. Development Plan</h2>
+
+<div class="progress-bar-container">
+  <div class="progress-bar-track">
+    <div class="progress-bar-fill" id="globalProgress"></div>
+  </div>
+  <span class="progress-label" id="globalProgressLabel">0 / 23 tasks</span>
+  <button class="save-btn" onclick="exportProgress()" title="Save progress to file">Save</button>
+  <button class="save-btn load-btn" onclick="document.getElementById('importFile').click()" title="Load progress from file">Load</button>
+  <input type="file" id="importFile" accept=".json" style="display:none" onchange="importProgress(event)">
+</div>
+
+<h3>Phase 0: Scaffolding (Days 1–2) <span class="phase-hours">12 hrs</span></h3>
+<div class="checklist">
+  <div class="task-item" data-id="p0-1">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Next.js project init, Tailwind, shadcn/ui, Prisma, Supabase setup</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p0-2">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Auth flow (signup/login/session)</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p0-3">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Database schema + seed script</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p0-4">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Anthropic API integration + Vercel AI SDK wiring</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p0-5">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Basic layout shell (sidebar, session view, responsive)</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+</div>
+
+<h3>Phase 1: Core Learning Loop (Days 3–6) <span class="phase-hours">29 hrs</span></h3>
+<div class="checklist">
+  <div class="task-item" data-id="p1-1">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Session orchestrator — mode selection logic</span>
+      <span class="task-hours">4h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-2">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Prompt constructor — dynamic system prompt generation per mode</span>
+      <span class="task-hours">4h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-3">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">TEACH mode — explain concept, render response, extract concepts</span>
+      <span class="task-hours">4h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-4">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">QUIZ mode — generate question, accept answer, LLM-grade response, update mastery</span>
+      <span class="task-hours">6h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-5">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">SOCRATIC mode — multi-turn guided questioning</span>
+      <span class="task-hours">4h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-6">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">SM-2 engine — interval calculation, decay, review scheduling</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-7">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Learner model — concept upsert, mastery update on quiz</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p1-8">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Streaming response rendering</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+</div>
+
+<h3>Phase 2: Dashboard &amp; Knowledge Graph (Days 7–9) <span class="phase-hours">16 hrs</span></h3>
+<div class="checklist">
+  <div class="task-item" data-id="p2-1">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Dashboard page — stats, streak, mastery overview</span>
+      <span class="task-hours">4h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p2-2">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Review queue — list concepts due for review, one-click start session</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p2-3">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Topic map — d3.js force-directed graph of concept nodes (mastery-colored)</span>
+      <span class="task-hours">6h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p2-4">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Session history — list past sessions, view transcripts</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+</div>
+
+<h3>Phase 3: Polish &amp; Edge Cases (Days 10–12) <span class="phase-hours">17 hrs</span></h3>
+<div class="checklist">
+  <div class="task-item" data-id="p3-1">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Error handling — LLM parse failures, rate limits, network errors</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p3-2">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Loading states, skeleton screens, optimistic UI</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p3-3">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Empty states (new user, no concepts yet)</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p3-4">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Session transitions — smooth mode switches within a session</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p3-5">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Mobile responsiveness pass</span>
+      <span class="task-hours">2h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p3-6">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Prompt tuning — iterate on LLM prompt quality for each mode</span>
+      <span class="task-hours">4h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+</div>
+
+<h3>Phase 4: Ship (Days 13–14) <span class="phase-hours">8 hrs</span></h3>
+<div class="checklist">
+  <div class="task-item" data-id="p4-1">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Vercel production deployment</span>
+      <span class="task-hours">1h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p4-2">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Environment variables, API key management</span>
+      <span class="task-hours">1h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p4-3">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">Smoke testing — full learning loop end-to-end</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+  <div class="task-item" data-id="p4-4">
+    <div class="task-row">
+      <label class="task-check"><input type="checkbox" onchange="handleCheck(this)"><span class="checkmark"></span></label>
+      <span class="task-label">README, demo recording, portfolio write-up</span>
+      <span class="task-hours">3h</span>
+      <button class="note-toggle" onclick="toggleNote(this)" title="Add notes">+</button>
+    </div>
+    <textarea class="task-notes" placeholder="Notes..." oninput="saveState()"></textarea>
+  </div>
+</div>
+
+<p><strong>Total estimated: ~82 hours across 14 days (~6 hrs/day)</strong></p>
+
+<hr>
+
+<h2 id="risks">8. Risk Register</h2>
+<table>
+  <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>LLM returns malformed JSON</td><td>High</td><td>Medium</td><td>Retry with stricter prompt. Fallback to raw text rendering. Zod validation on every response.</td></tr>
+    <tr><td>SM-2 mastery scores feel inaccurate</td><td>Medium</td><td>Low</td><td>Tunable parameters. Can adjust ease factor bounds and interval scaling post-launch.</td></tr>
+    <tr><td>Concept extraction is noisy (LLM extracts too many or irrelevant concepts)</td><td>High</td><td>Medium</td><td>Constrain extraction to 1–3 concepts per exchange. Use the orchestrator's topic scope as a filter.</td></tr>
+    <tr><td>Scope creep into document ingestion, multi-modal, etc.</td><td>High</td><td>High</td><td>Hard scope boundary in this PRD. Anything not in Section 4 is post-v1.</td></tr>
+    <tr><td>Anthropic API costs spike</td><td>Low</td><td>Medium</td><td>Sonnet 4 is cost-efficient. Cache repeated concept explanations. Rate-limit sessions per user.</td></tr>
+    <tr><td>Auth/security gaps</td><td>Medium</td><td>High</td><td>Use Supabase Auth (battle-tested). Server-side session validation on all API routes. No client-side API keys.</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="metrics">9. Success Metrics (Post-Launch)</h2>
+<table>
+  <thead><tr><th>Metric</th><th>Target (30-day)</th><th>Why It Matters</th></tr></thead>
+  <tbody>
+    <tr><td>Session completion rate</td><td>&gt; 70%</td><td>Users finishing sessions = sessions are well-paced.</td></tr>
+    <tr><td>Return rate (7-day)</td><td>&gt; 40%</td><td>Users come back = the product is sticky.</td></tr>
+    <tr><td>Concepts with mastery &gt; 0.7 per user</td><td>&gt; 15</td><td>The knowledge graph is growing = learning is happening.</td></tr>
+    <tr><td>Review session engagement</td><td>&gt; 50% of due reviews completed</td><td>Spaced repetition only works if people do their reviews.</td></tr>
+    <tr><td>Average session length</td><td>8–15 min</td><td>Sweet spot: long enough to learn, short enough to not burn out.</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2 id="roadmap">10. Future Roadmap (Post-MVP)</h2>
+
+<p>These are explicitly out of scope for the 2-week build but represent the natural evolution:</p>
+
+<ol>
+  <li><strong>Document ingestion</strong> — Upload a PDF/textbook chapter, Cortex extracts concepts and builds a learning path from it. Huge feature.</li>
+  <li><strong>Learning paths</strong> — Curated or AI-generated multi-session curricula (e.g., "Learn Embedded C in 30 days").</li>
+  <li><strong>Code sandbox</strong> — For programming topics, embed a live code editor where the learner writes and runs code as part of QUIZ/APPLIED mode.</li>
+  <li><strong>Multiplayer</strong> — Study groups, shared knowledge graphs, peer quizzing.</li>
+  <li><strong>Concept prerequisites</strong> — Explicit dependency edges in the knowledge graph. "You can't learn X until you know Y."</li>
+  <li><strong>Export</strong> — Anki deck export from the knowledge graph. Markdown notes export.</li>
+  <li><strong>Voice mode</strong> — Conversational learning via speech-to-text + TTS.</li>
+  <li><strong>Analytics</strong> — Forgetting curve visualization, optimal study time recommendations.</li>
+</ol>
+
+<hr>
+
+<h2 id="questions">11. Open Questions</h2>
+
+<ol>
+  <li><strong>Concept granularity.</strong> How fine-grained should concept nodes be? "Pointers" vs. "Pointer arithmetic" vs. "Pointer to pointer." Leaning toward letting the LLM decide based on topic scope, then merging duplicates with fuzzy matching.</li>
+  <li><strong>Confidence self-report.</strong> Should the user rate their confidence before answering a quiz? Adds a data point for mastery calculation but adds friction. Leaning toward including it as an optional one-tap UI element.</li>
+  <li><strong>Session length control.</strong> Fixed length (e.g., 10 questions) vs. adaptive (stop when mastery hits a threshold)? Leaning toward adaptive with a soft cap at 15 minutes.</li>
+  <li><strong>Multi-model support priority.</strong> How soon do we need OpenAI/Gemini support? The Vercel AI SDK makes this low-effort, but prompt tuning per model is non-trivial. Leaning toward Claude-only for MVP, abstract later.</li>
+</ol>
+
+<hr>
+
+<h2 id="landscape">12. Competitive Landscape</h2>
+<table>
+  <thead><tr><th>Product</th><th>What It Does</th><th>Where Cortex Differs</th></tr></thead>
+  <tbody>
+    <tr><td><strong>ChatGPT / Claude.ai</strong></td><td>General-purpose chat</td><td>No learning structure, no retention, no learner model</td></tr>
+    <tr><td><strong>Anki</strong></td><td>Spaced repetition flashcards</td><td>No AI generation, no teaching mode, manual card creation</td></tr>
+    <tr><td><strong>Quizlet</strong></td><td>Flashcards + basic quiz</td><td>No adaptive AI, no Socratic mode, no concept graph</td></tr>
+    <tr><td><strong>Khanmigo (Khan Academy)</strong></td><td>AI tutor for K-12</td><td>Locked to Khan Academy content, not general-purpose</td></tr>
+    <tr><td><strong>Duolingo</strong></td><td>Gamified language learning</td><td>Domain-specific, no general knowledge support</td></tr>
+    <tr><td><strong>Remnote</strong></td><td>Notes + SRS</td><td>Note-taking first, learning second. No AI orchestration.</td></tr>
+  </tbody>
+</table>
+
+<p>Cortex's wedge: <strong>general-purpose AI tutoring with real pedagogical structure.</strong> No existing product combines LLM generation quality with spaced repetition, adaptive difficulty, and Socratic questioning across arbitrary topics.</p>
+
+<p class="closing"><em>This document is the source of truth for the Cortex MVP. Any feature not described here is out of scope. Ship in 14 days.</em></p>
+
+</div><!-- end main-content -->
+
+<script>
+function handleCheck(cb) {
+  const item = cb.closest('.task-item');
+  item.classList.toggle('done', cb.checked);
+  updateProgress();
+  saveState();
+}
+
+function toggleNote(btn) {
+  const item = btn.closest('.task-item');
+  const notes = item.querySelector('.task-notes');
+  const isOpen = notes.classList.contains('visible');
+  notes.classList.toggle('visible', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+  btn.textContent = isOpen ? '+' : '−';
+  if (!isOpen) notes.focus();
+}
+
+function updateProgress() {
+  const total = document.querySelectorAll('.task-item').length;
+  const done = document.querySelectorAll('.task-item input:checked').length;
+  const pct = total > 0 ? (done / total) * 100 : 0;
+  document.getElementById('globalProgress').style.width = pct + '%';
+  document.getElementById('globalProgressLabel').textContent = done + ' / ' + total + ' tasks';
+}
+
+function saveState() {
+  const state = {};
+  document.querySelectorAll('.task-item').forEach(item => {
+    const id = item.dataset.id;
+    const checked = item.querySelector('input[type="checkbox"]').checked;
+    const notes = item.querySelector('.task-notes').value;
+    const notesOpen = item.querySelector('.task-notes').classList.contains('visible');
+    state[id] = { checked, notes, notesOpen };
+  });
+  try { localStorage.setItem('cortex-prd-tasks', JSON.stringify(state)); } catch(e) {}
+}
+
+function exportProgress() {
+  const state = {};
+  document.querySelectorAll('.task-item').forEach(item => {
+    const id = item.dataset.id;
+    const checked = item.querySelector('input[type="checkbox"]').checked;
+    const notes = item.querySelector('.task-notes').value;
+    const notesOpen = item.querySelector('.task-notes').classList.contains('visible');
+    state[id] = { checked, notes, notesOpen };
+  });
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cortex-progress.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importProgress(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    let state;
+    try { state = JSON.parse(e.target.result); } catch(err) { alert('Invalid JSON file.'); return; }
+    applyState(state);
+    try { localStorage.setItem('cortex-prd-tasks', JSON.stringify(state)); } catch(err) {}
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function applyState(state) {
+  if (!state) return;
+  document.querySelectorAll('.task-item').forEach(item => {
+    const id = item.dataset.id;
+    const s = state[id];
+    if (!s) return;
+    const cb = item.querySelector('input[type="checkbox"]');
+    const notes = item.querySelector('.task-notes');
+    const btn = item.querySelector('.note-toggle');
+    cb.checked = s.checked;
+    item.classList.toggle('done', s.checked);
+    notes.value = s.notes || '';
+    if (s.notesOpen || s.notes) {
+      notes.classList.add('visible');
+      btn.classList.add('open');
+      btn.textContent = '−';
+    } else {
+      notes.classList.remove('visible');
+      btn.classList.remove('open');
+      btn.textContent = '+';
+    }
+  });
+  updateProgress();
+}
+
+function loadState() {
+  let state;
+  try { state = JSON.parse(localStorage.getItem('cortex-prd-tasks')); } catch(e) {}
+  applyState(state);
+}
+
+document.addEventListener('DOMContentLoaded', loadState);
+
+// Sidebar scroll tracking
+const sidebarLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+const sections = Array.from(sidebarLinks).map(a => {
+  const id = a.getAttribute('href').slice(1);
+  return { link: a, el: document.getElementById(id) };
+}).filter(s => s.el);
+
+function updateActiveLink() {
+  let current = sections[0];
+  for (const s of sections) {
+    if (s.el.getBoundingClientRect().top <= 120) current = s;
+  }
+  sidebarLinks.forEach(a => a.classList.remove('active'));
+  if (current) current.link.classList.add('active');
+}
+
+window.addEventListener('scroll', updateActiveLink);
+updateActiveLink();
+
+// Smooth scroll for sidebar links
+sidebarLinks.forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    const target = document.getElementById(id);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+</script>
+
+</body>
+</html>
