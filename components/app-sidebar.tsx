@@ -1,3 +1,6 @@
+"use client"
+
+import { useSidebar } from "@/components/ui/sidebar"
 import {
   Sidebar,
   SidebarContent,
@@ -9,7 +12,8 @@ import {
   SidebarMenuButton,
   SidebarSeparator,
   SidebarGroupLabel,
-  SidebarGroupContent
+  SidebarGroupContent,
+  SidebarTrigger
 } from "@/components/ui/sidebar"
 import {
   DropdownMenu,
@@ -23,38 +27,41 @@ import '@fontsource/bitcount-grid-double';
 
 
 export function AppSidebar() {
+  const {state} = useSidebar();
+
   return (
-    <Sidebar className="border-zinc-200 bg-zinc-50 overflow-hidden">
-      <SidebarHeader>
-        <h1 className="pl-2 font-['Bitcount_Grid_Double'] text-3xl">Cortex</h1>
+    <Sidebar collapsible="icon" className="border-zinc-200 bg-zinc-50 min-w-0 flex flex-row items-center">
+      <SidebarHeader className={`flex flex-row items-center h-14 ${state === "expanded" ? "justify-between" : "justify-center"}`}>
+        {state === "expanded" && (<h1 className="pl-2 font-['Bitcount_Grid_Double'] text-4xl">Cortex</h1>)}  
+        <SidebarTrigger className = "shrink-0 z-10 relative" />        
       </SidebarHeader>
-      <SidebarSeparator />
+      <br/>
       <SidebarGroup>
-        <SidebarGroupLabel>Main</SidebarGroupLabel>
         <SidebarGroupContent>
-          <SidebarMenuItem>
-              
-              <SidebarMenuButton> <Plus className = ""/> New Session</SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton> <LayoutDashboard className = ""/> Dashboard</SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton> <IterationCw className=""/> Review Queue</SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton><FolderClock className=""/>Session History</SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton><Waypoints className = ""/>Topic Map</SidebarMenuButton>
-          </SidebarMenuItem>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                  <SidebarMenuButton> <Plus /> {state === "expanded" && <span> New Session</span>}</SidebarMenuButton>
+              </SidebarMenuItem>
+              <br/>
+              <SidebarMenuItem>
+                <SidebarMenuButton> <LayoutDashboard/> {state === "expanded" && <span> Dashboard</span>}</SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton> <IterationCw/> {state === "expanded" && <span> Review Queue</span>}</SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton><FolderClock/>{state === "expanded" && <span> Session History</span>}</SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton><Waypoints/>{state === "expanded" && <span> Topic Map</span>}</SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
       <SidebarContent>
         <SidebarMenu>
-          
           <SidebarMenuItem>
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton>
                     Select Workspace
@@ -66,7 +73,7 @@ export function AppSidebar() {
                     <span>Cortex</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu> 
+              </DropdownMenu>  */}
           </SidebarMenuItem> 
         </SidebarMenu>
         <SidebarGroup />

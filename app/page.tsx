@@ -4,7 +4,6 @@ import Image from "next/image";
 import { createClient } from '@/lib/supabase/client'
 import {useEffect} from 'react'
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Plus, LayoutDashboard, IterationCw, FolderClock, Waypoints } from "lucide-react"
 import '@fontsource/bitcount-grid-double';
 
 
