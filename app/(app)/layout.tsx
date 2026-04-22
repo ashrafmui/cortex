@@ -14,9 +14,14 @@ export default async function AppLayout({
   if (!user) redirect("/auth/login");
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-        <main className="flex-1">{children}</main>
+    <div>
+      <SidebarProvider>
+        <AppSidebar />
+          <main className="flex w-full bg-white dark:bg-black px-8 pt-20">
+            {children}
+          </main>
     </SidebarProvider>
+    </div>
+    
   );
 }

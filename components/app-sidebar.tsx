@@ -52,7 +52,7 @@ export function AppSidebar() {
               <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton asChild tooltip={{children: "New Session", side: "right"}}>
-                      <Link href="/"><Plus /> {state === "expanded" && <span> New Session</span>}</Link>
+                      <Link href="/new-session"><Plus /> {state === "expanded" && <span> New Session</span>}</Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 <br/>
@@ -101,7 +101,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip={{children: "Settings", side: "right"}}>
-              <Link href="/topic-map"><Settings/>{state === "expanded" && <span> Settings</span>}</Link>
+              <Link href="/settings"><Settings/>{state === "expanded" && <span> Settings</span>}</Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

@@ -5,12 +5,13 @@ import { createClient } from '@/lib/supabase/client'
 import {useEffect} from 'react'
 import { Button } from "@/components/ui/button";
 import '@fontsource/bitcount-grid-double';
+import { ApiKey } from "@/components/api-key";
 
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-        <h1 className="pl-2 font-['Bitcount_Grid_Double'] text-20xl">Cortex</h1>
+    <div className="flex flex-col flex-1 items-center justify-center font-sans dark:bg-black">
+        <ApiKey/>
     </div>
   );
 }
