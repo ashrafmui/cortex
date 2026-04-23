@@ -27,10 +27,18 @@ const MOCK = {
   totalConcepts: 23,
   overallMastery: 64,
   dueForReview: 4,
+  topics: [
+    { id: "1", name: "Pointers in C", mastery: 82, status: "strong" },
+    { id: "2", name: "Memory Management", mastery: 45, status: "developing" },
+    { id: "3", name: "Linked Lists", mastery: 71, status: "strong" },
+    { id: "4", name: "Recursion", mastery: 18, status: "weak" },
+    { id: "5", name: "Binary Trees", mastery: 25, status: "weak" },
+    { id: "6", name: "Dynamic Programming", mastery: 31, status: "developing" },
+  ],
   recentSessions: [
-    { id: "1", goal: "Pointers in C", date: "Apr 17", duration: "12 min", delta: +0.15 },
-    { id: "2", goal: "Memory Management", date: "Apr 16", duration: "8 min", delta: +0.22 },
-    { id: "3", goal: "Linked Lists", date: "Apr 15", duration: "14 min", delta: +0.09 },
+    { id: "1", topicId: "1", date: "Apr 17", duration: "12 min", delta: +0.15 },
+    { id: "2", topicId: "2", date: "Apr 16", duration: "8 min", delta: +0.22 },
+    { id: "3", topicId: "3", date: "Apr 15", duration: "14 min", delta: +0.09 },
   ],
   weakConcepts: [
     { id: "1", topic: "Recursion", mastery: 18 },
@@ -40,15 +48,14 @@ const MOCK = {
   distribution: { red: 5, yellow: 10, green: 8 },
 }
 
-type Session = {
+type Topic = {
   id: string;
-  goal: string;
-  date: string;
-  duration: string;
-  delta: number;
+  name: string;
+  mastery: number;
+  status: string;
 };
 
-export function Mastery({ value }: { value: number }){
+export function Mastery({ value, topics }: { value: number; topics: Topic[] }){
   return(
     <Card className="group min-w-0 flex-1 hover:bg-red-300 hover:text-black transition-colors duration-300">
       <CardHeader className = "flex flex-row items-center justify-between w-full">
@@ -58,17 +65,33 @@ export function Mastery({ value }: { value: number }){
       </CardHeader>
       <CardContent>
         <div className = "bg-transparent">
-          <Button className = "flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50">
-              <p className = "text-black">Progress</p>
-              {/* insert actual values for progress fetched from the supabase api for user*/}
-              <NumberTicker value = {value}/>
+          {topics.map((topics) => 
+          <Button 
+            key = {topics.id} 
+            className = "relative flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50 overflow-hidden"
+            >
+            {/* Fill bar */}
+              <p className = "text-black">{topics.name}</p>
+              <div 
+                className={`absolute left-0 top-0 h-full ${
+                  topics.status === "strong" ? "bg-green-200" :
+                  topics.status === "developing" ? "bg-yellow-200" :
+                  "bg-red-200"
+                }`}
+                style={{ width: `${topics.mastery}%` }}
+              />
+              {/* <p className = "text-black">{topics.mastery}</p> */}
+              <NumberTicker value = {topics.mastery}/>
+          </Button>
+          )}
+          {/* <Button className = "flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50">
+              
           </Button>
           <Button className = "flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50">
             <div className = "flex flex-row items-center justify-between">
               <p className = "text-black">Progress</p>
-              {/* insert actual values for progress fetched from the supabase api for user*/}
             </div>
-          </Button>
+          </Button> */}
         </div>
         {/* insert actual values for progress fetched from the supabase api for user */}
       </CardContent>
@@ -139,7 +162,7 @@ export default function Home() {
         <br/>
         <div className = "flex flex-col sm:flex-row gap-5 w-full mt-6">
           {/* Mastery Component */}
-          <Mastery value = {MOCK.overallMastery}/>
+          <Mastery value = {MOCK.overallMastery} topics={MOCK.topics}/>
           <Review />
           <Streak />
           {/* Streak Counter Component */}
