@@ -11,12 +11,12 @@ export default function Home() {
         </span>
         <nav className="flex items-center gap-2">
           <Link href="/auth/login">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="lg">
               Log in
             </Button>
           </Link>
           <Link href="/auth/sign-up">
-            <Button size="sm">Get started</Button>
+            <Button size="lg">Get started</Button>
           </Link>
         </nav>
       </header>

@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className = "w-full">
             <div className = "flex flex-col sm:flex-row w-full font-light">
-              <h1 className="text-4xl">Review Queue</h1>
+              <h1 className="text-4xl">Topics</h1>
                 <h3 className = ""></h3>
               </div>
     </div>

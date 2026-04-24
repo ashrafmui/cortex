@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress"
 import { ChevronRightIcon, Link } from "lucide-react";
 import { NumberTicker } from "@/components/ui/number-ticker";
+import { useRouter } from "next/navigation"
 
 
 import '@fontsource/bitcount-grid-double';
@@ -26,15 +27,16 @@ const MOCK = {
   streak: 5,
   totalConcepts: 23,
   overallMastery: 64,
+  masteryDelta: 3.2,
   dueForReview: 4,
   topics: [
-    { id: "1", name: "Pointers in C", mastery: 82, status: "strong" },
-    { id: "2", name: "Memory Management", mastery: 45, status: "developing" },
-    { id: "3", name: "Linked Lists", mastery: 71, status: "strong" },
-    { id: "4", name: "Recursion", mastery: 18, status: "weak" },
-    { id: "5", name: "Binary Trees", mastery: 25, status: "weak" },
-    { id: "6", name: "Dynamic Programming", mastery: 31, status: "developing" },
-  ],
+  { id: "1", name: "Pointers in C", mastery: 82, status: "strong", lastReviewed: "Apr 22" },
+  { id: "2", name: "Memory Management", mastery: 45, status: "developing", lastReviewed: "Apr 20" },
+  { id: "3", name: "Linked Lists", mastery: 71, status: "strong", lastReviewed: "Apr 21" },
+  { id: "4", name: "Recursion", mastery: 18, status: "weak", lastReviewed: "Apr 12" },
+  { id: "5", name: "Binary Trees", mastery: 25, status: "weak", lastReviewed: "Apr 10" },
+  { id: "6", name: "Dynamic Programming", mastery: 31, status: "developing", lastReviewed: "Apr 14" },
+] as Topic[],
   recentSessions: [
     { id: "1", topicId: "1", date: "Apr 17", duration: "12 min", delta: +0.15 },
     { id: "2", topicId: "2", date: "Apr 16", duration: "8 min", delta: +0.22 },
@@ -48,84 +50,152 @@ const MOCK = {
   distribution: { red: 5, yellow: 10, green: 8 },
 }
 
+const statusColors = {
+  strong: { bg: "bg-green-200", text: "text-green-500" },
+  developing: { bg: "bg-yellow-200", text: "text-yellow-500" },
+  weak: { bg: "bg-red-200", text: "text-red-500" },
+} as const;
+
 type Topic = {
   id: string;
   name: string;
   mastery: number;
-  status: string;
+  status: "strong" | "developing" | "weak";
+  lastReviewed: string;
 };
 
-export function Mastery({ value, topics }: { value: number; topics: Topic[] }){
-  return(
-    <Card className="group min-w-0 flex-1 hover:bg-red-300 hover:text-black transition-colors duration-300">
-      <CardHeader className = "flex flex-row items-center justify-between w-full">
-        <CardTitle className = "text-black text-2xl">Overall Mastery</CardTitle>
-        <NumberTicker value = {value} className = "text-2xl"/>
-        {/* <CardDescription className = "text-green-400 font-semibold">Card Description</CardDescription> */}
+export function Mastery({ value, delta, topics }: { value: number; delta: number, topics: Topic[] }) {
+  const [animated, setAnimated] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setAnimated(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Card className="group min-w-0 flex-1 hover:bg-slate-100 hover:text-black transition-colors duration-300"
+    onClick={() => router.push("/topics")}
+    >
+      <CardHeader className="flex flex-row items-center justify-between w-full">
+        <CardTitle className="text-black text-2xl">Overall Mastery</CardTitle>
+        <NumberTicker value={value} className="text-2xl" />
       </CardHeader>
-      <CardContent>
-        <div className = "bg-transparent">
-          {topics.map((topics) => 
-          <Button 
-            key = {topics.id} 
-            className = "relative flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50 overflow-hidden"
-            >
-            {/* Fill bar */}
-              <p className = "text-black">{topics.name}</p>
-              <div 
-                className={`absolute left-0 top-0 h-full ${
-                  topics.status === "strong" ? "bg-green-200" :
-                  topics.status === "developing" ? "bg-yellow-200" :
-                  "bg-red-200"
-                }`}
-                style={{ width: `${topics.mastery}%` }}
-              />
-              {/* <p className = "text-black">{topics.mastery}</p> */}
-              <NumberTicker value = {topics.mastery}/>
-          </Button>
-          )}
-          {/* <Button className = "flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50">
-              
-          </Button>
-          <Button className = "flex flex-col sm:flex-row gap-5 w-full justify-between bg-transparent hover:bg-stone-50">
-            <div className = "flex flex-row items-center justify-between">
-              <p className = "text-black">Progress</p>
-            </div>
-          </Button> */}
-        </div>
-        {/* insert actual values for progress fetched from the supabase api for user */}
+      <CardDescription className={`px-4 ${delta >= 0 ? "text-green-600 font-medium" : "text-red-500 text-lg"}`}>
+          {delta >= 0 ? "↑" : "↓"} {Math.abs(delta)}% from last week
+      </CardDescription>
+      <CardContent className="flex flex-col gap-2 max-h-[240px] overflow-y-auto">
+          {topics.map((topic) => {
+            const colors = statusColors[topic.status];
+            return (
+              <div
+                key={topic.id}
+                className="relative flex flex-row items-center w-full justify-between px-4 py-1 rounded-md cursor-pointer hover:bg-stone-50 overflow-hidden"
+              >
+                <div
+                  className={`absolute inset-y-0 left-0 transition-[width] duration-1000 ease-out ${colors.bg}`}
+                  style={{ width: animated ? `${topic.mastery}%` : "0%" }}
+                />
+                <p className="relative z-10 text-black text-sm">{topic.name}</p>
+                <NumberTicker
+                  value={topic.mastery}
+                  className={`relative z-10 ${colors.text}`}
+                />
+              </div>
+            );
+          })}
       </CardContent>
       <CardFooter>
-        <CardAction className = "flex flex-row items-center justify-end w-full">
-            <ChevronRightIcon strokeWidth={1.5} className = "opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </CardAction>
+        <CardAction className="flex flex-row items-center justify-end w-full">
+          <ChevronRightIcon
+            strokeWidth={1.5}
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          />
+        </CardAction>
       </CardFooter>
     </Card>
-  )
+  );
+}
+
+function MasteryRing({ value, size = 28, strokeWidth = 3 }: { value: number; size?: number; strokeWidth?: number }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const filled = circumference * (1 - value / 100);
+
+  return (
+    <svg width={size} height={size} className="rotate-[-90deg]">
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        className="text-muted-foreground/20"
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={radius}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={strokeWidth}
+        strokeDasharray={circumference}
+        strokeDashoffset={filled}
+        strokeLinecap="round"
+        className="text-red-500"
+      />
+    </svg>
+  );
 }
 
   {/* Due for Review Component */}
-export function Review(){
-  return (
-    <Card className="min-w-0 flex-1 hover:-green-500 hover:text-black transition-colors duration-300">
-      <CardHeader>
-        <CardTitle className = "text-xl">Due for Review</CardTitle>
-        <CardDescription className = "text-green-300 font-semibold"></CardDescription>
-      </CardHeader>
-      <CardContent>
+export function Review({topics} : {topics: Topic[]}){
+  const threshold = 40;
+  const dueTopics = topics.filter((t) => t.mastery < threshold)
+  const router = useRouter();
 
+  return (
+    <Card className="group min-w-0 flex-1 hover:bg-slate-100 transition-colors duration-300"
+          onClick={() => router.push("/review")}
+    >
+      <CardHeader className = "flex flex-row items-center justify-between w-full pb-4">
+        <CardTitle className = "text-2xl">Due for Review</CardTitle>
+        <CardDescription className = "text-green-600 font-medium">
+          {dueTopics.length} topics{dueTopics.length !== 1 } need attention
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+          {dueTopics.map((topic) => (
+            <div key={topic.id} className="flex justify-between items-center text-sm">
+              <div className="flex flex-col">
+                <span>{topic.name}</span>
+                <span className="text-xs text-muted-foreground">Last Reviewed: {topic.lastReviewed}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-500">{topic.mastery}%</span>
+                <MasteryRing value={topic.mastery} />
+              </div>
+            </div>
+          ))}
       </CardContent>
-      <CardFooter>
+      <CardFooter className = "mt-auto">
+        <CardAction className="flex flex-row items-center justify-end w-full">
+            <ChevronRightIcon
+              strokeWidth={1.5}
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            />
+        </CardAction>
       </CardFooter>
     </Card>
   )
 }
 
-export function Streak(){
+export function WeeklyProgress(){
   return (
-    <Card className="min-w-0 flex-1 hover:bg-green-500 hover:text-white transition-colors duration-300">
+    <Card className="min-w-0 flex-1 hover:bg-slate-100 transition-colors duration-300">
       <CardHeader>
-        <CardTitle className = "text-xl">Weekly Progress</CardTitle>
+        <CardTitle className = "text-2xl">Weekly Progress</CardTitle>
         <CardDescription className = "text-green-300 font-semibold"></CardDescription>
       </CardHeader>
       <CardContent>
@@ -152,7 +222,7 @@ export default function Home() {
 
   return (
     <div className = "w-full">
-          <div className = "flex flex-col sm:flex-row gap-5 w-full mt-6 justify-between">
+          <div className = "flex flex-col sm:flex-row w-full justify-between">
             <h1 className="text-4xl font-light">Hello, <span className = "font-semibold">{name}</span></h1>
             <div className="flex flex-col ">
               <h4 className = "">Streak</h4>
@@ -162,9 +232,9 @@ export default function Home() {
         <br/>
         <div className = "flex flex-col sm:flex-row gap-5 w-full mt-6">
           {/* Mastery Component */}
-          <Mastery value = {MOCK.overallMastery} topics={MOCK.topics}/>
-          <Review />
-          <Streak />
+          <Mastery value = {MOCK.overallMastery} delta={MOCK.masteryDelta} topics={MOCK.topics}/>
+          <Review topics = {MOCK.topics}/>
+          <WeeklyProgress />
           {/* Streak Counter Component */}
           {/* <Card className="min-w-0 flex-1">
             <CardHeader>
