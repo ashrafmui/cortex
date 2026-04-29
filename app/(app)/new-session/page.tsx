@@ -1,7 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { ArrowUpIcon } from 'lucide-react'
+import {
+  ArrowUpIcon,
+  BookOpenIcon,
+  ListChecksIcon,
+  MessageCircleQuestionIcon,
+  RotateCcwIcon,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -9,10 +15,26 @@ import { cn } from '@/lib/utils'
 type Role = 'user' | 'assistant'
 type Message = { id: string; role: Role; content: string }
 
+const MODES = [
+  { id: 'TEACH', label: 'Teach', icon: BookOpenIcon },
+  { id: 'QUIZ', label: 'Quiz', icon: ListChecksIcon },
+  { id: 'SOCRATIC', label: 'Socratic', icon: MessageCircleQuestionIcon },
+  { id: 'REVIEW', label: 'Review', icon: RotateCcwIcon },
+] as const
+type Mode = (typeof MODES)[number]['id']
+
+const REPLY_BY_MODE: Record<Mode, (topic: string) => string> = {
+  TEACH: (t) => `Let's dig into "${t}". Want to start with the fundamentals or jump to a specific concept?`,
+  QUIZ: (t) => `Got it — I'll quiz you on "${t}". Ready for question 1?`,
+  SOCRATIC: (t) => `Interesting. What do you already know about "${t}"?`,
+  REVIEW: (t) => `Let's revisit "${t}". What part feels shakiest right now?`,
+}
+
 export default function NewSession() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [mode, setMode] = useState<Mode>('TEACH')
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -48,7 +70,7 @@ export default function NewSession() {
     const reply: Message = {
       id: crypto.randomUUID(),
       role: 'assistant',
-      content: `Let's dig into "${text}". Want to start with the fundamentals, or do you have a specific question in mind?`,
+      content: REPLY_BY_MODE[mode](text),
     }
     setMessages((m) => [...m, reply])
     setIsStreaming(false)
@@ -67,11 +89,14 @@ export default function NewSession() {
     <div className="flex w-full h-[calc(100dvh-5rem)] flex-col overflow-hidden">
       {isEmpty ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4">
-          <div className="text-center">
-            <h1 className="text-4xl font-light">Start a Session</h1>
-            <p className="text-muted-foreground mt-2">
-              What do you want to learn about?
-            </p>
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-center">
+              <h1 className="text-4xl font-light">Start a Session</h1>
+              <p className="text-muted-foreground mt-2">
+                What do you want to learn about?
+              </p>
+            </div>
+            <ModeSelector mode={mode} onChange={setMode} />
           </div>
           <Composer
             inputRef={textareaRef}
@@ -107,6 +132,39 @@ export default function NewSession() {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+function ModeSelector({
+  mode,
+  onChange,
+}: {
+  mode: Mode
+  onChange: (m: Mode) => void
+}) {
+  return (
+    <div className="flex flex-wrap justify-center gap-2">
+      {MODES.map((m) => {
+        const Icon = m.icon
+        const active = mode === m.id
+        return (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => onChange(m.id)}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+              active
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground'
+            )}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            {m.label}
+          </button>
+        )
+      })}
     </div>
   )
 }
