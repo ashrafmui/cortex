@@ -11,6 +11,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { getGreeting } from '@/lib/greetings'
 
 type Role = 'user' | 'assistant'
 type Message = { id: string; role: Role; content: string }
@@ -35,6 +36,11 @@ export default function NewSession() {
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [mode, setMode] = useState<Mode>('TEACH')
+  const [greeting, setGreeting] = useState('Start a Session')
+
+  useEffect(() => {
+    setGreeting(getGreeting())
+  }, [])
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -91,7 +97,7 @@ export default function NewSession() {
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-4">
           <div className="flex flex-col items-center gap-4">
             <div className="text-center">
-              <h1 className="text-4xl font-light">Start a Session</h1>
+              <h1 className="text-4xl font-light">{greeting}</h1>
               <p className="text-muted-foreground mt-2">
                 What do you want to learn about?
               </p>

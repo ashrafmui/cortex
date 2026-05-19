@@ -11,11 +11,10 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
-    id String @id @default(cuid())
+    id String @id // Set explicitly to Supabase auth.user.id (UUID)
     email String @unique
     name String?
     createdAt DateTime @default(now())
@@ -30,7 +29,7 @@ model ConceptNode {
     topic String
     parentTopic String?
     mastery Float @default(0.0)
-    difficultyTier String @default("foundation") // foundation | working | deep | a
+    difficultyTier String @default("foundation") // foundation | working | deep | applied
     lastReviewed DateTime?
     reviewInterval Int @default(1) // days, SM-2 interval
     easeFactor Float @default(2.5) // SM-2 ease factor

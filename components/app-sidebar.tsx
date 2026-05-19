@@ -23,17 +23,23 @@ import {
 //   DropdownMenuContent,
 //   DropdownMenuItem,
 // } from "@/components/ui/dropdown-menu"
-import { Layers, Plus, LayoutDashboard, IterationCw, FolderClock, Waypoints, Settings } from "lucide-react"
+import { Layers, Plus, LayoutDashboard, IterationCw, FolderClock, Waypoints, Settings, LogOut } from "lucide-react"
 import '@fontsource/bitcount-grid-double';
 import Link from "next/link"
 import React from 'react'
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 export function AppSidebar() {
   const {state} = useSidebar();
   const supabase = createClient();
   const [name, setName] = useState("");
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -109,8 +115,13 @@ export function AppSidebar() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton>
-              
+
                {name}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleSignOut} tooltip={{children: "Sign Out", side: "right"}}>
+              <LogOut/>{state === "expanded" && <span> Sign Out</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

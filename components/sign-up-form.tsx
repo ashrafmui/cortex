@@ -5,6 +5,7 @@ import { useState } from 'react'
 
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { ensureDbUser } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -41,7 +42,7 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -50,6 +51,9 @@ export function SignUpForm({ className, ...props }: React.ComponentPropsWithoutR
       })
 
       if (error) throw error
+      if (data.user) {
+        await ensureDbUser({ id: data.user.id, email: data.user.email! })
+      }
       router.push('/auth/sign-up-success')
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'An error occurred')
