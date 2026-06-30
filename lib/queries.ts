@@ -216,6 +216,22 @@ export async function getRecentReviewsForConcept(
   });
 }
 
+export async function getSessionsForUser(userId: string) {
+  return prisma.session.findMany({
+    where: { userId },
+    orderBy: { startedAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      goal: true,
+      mode: true,
+      startedAt: true,
+      endedAt: true,
+      conceptsHit: true,
+    },
+  });
+}
+
 export async function getConceptDeltaPct(conceptId: string): Promise<number> {
   const concept = await prisma.conceptNode.findUnique({
     where: { id: conceptId },
