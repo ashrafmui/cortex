@@ -23,6 +23,7 @@ function makeCompletion(content: string) {
 describe("callLLM", () => {
   beforeEach(() => {
     mockCreate.mockReset();
+    vi.stubEnv("GROQ_API_KEY", "test-key"); // lazy client needs a key to construct
   });
 
   it("calls chat.completions.create with system + user messages", async () => {
