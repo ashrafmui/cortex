@@ -7,10 +7,19 @@ export interface LLMCall {
   mode: SessionMode | "GRADE";
 }
 
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-});
+// Lazily construct the client so importing this module has no side effects.
+// (Building on CI evaluates route modules for page-data collection, where
+// GROQ_API_KEY isn't present — an eager `new OpenAI(...)` would throw there.)
+let client: OpenAI | null = null;
+
+function getClient(): OpenAI {
+  if (!client) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) throw new Error("GROQ_API_KEY is not set");
+    client = new OpenAI({ apiKey, baseURL: "https://api.groq.com/openai/v1" });
+  }
+  return client;
+}
 
 // Strip ```json ... ``` fences the model sometimes wraps around its JSON output
 function extractJSON(raw: string): string {
@@ -19,7 +28,7 @@ function extractJSON(raw: string): string {
 }
 
 export async function callLLM({ systemPrompt, userMessage }: LLMCall): Promise<string> {
-  const msg = await client.chat.completions.create({
+  const msg = await getClient().chat.completions.create({
     model: "llama-3.3-70b-versatile",
     max_tokens: 2048,
     messages: [
