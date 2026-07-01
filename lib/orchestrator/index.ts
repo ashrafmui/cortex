@@ -50,7 +50,8 @@ export function initSession(
   sessionId: string,
   userId: string,
   goal: string,
-  concepts: ConceptSnapshot[]
+  concepts: ConceptSnapshot[],
+  preferredConceptId?: string
 ): { sessionState: SessionState; prompt: ConstructedPrompt } {
   const sessionState: SessionState = {
     sessionId,
@@ -64,6 +65,14 @@ export function initSession(
     exchanges: [],
     startedAt: new Date(),
   };
+
+  // If the learner picked a specific concept (e.g. tapped a topic card), honor it:
+  // seed currentConcept so makeDecision builds the mode for THAT concept rather
+  // than running its own concept-selection heuristic.
+  if (preferredConceptId) {
+    const preferred = concepts.find((c) => c.id === preferredConceptId);
+    if (preferred) sessionState.currentConcept = preferred;
+  }
 
   // Make the first decision
   const decision = makeDecision(concepts, sessionState);
@@ -153,6 +162,7 @@ export function recordExchange(
     role,
     content,
     mode: sessionState.currentMode,
+    concept: sessionState.currentConcept?.topic,
     timestamp: new Date(),
   };
 
@@ -275,10 +285,17 @@ export function extractNewConcepts(
 }
 
 // ============================================================================
-// Grading Prompt (pass-through to prompt constructor)
+// Socratic Dialogue
 // ============================================================================
 
-export { constructGradePrompt } from "./prompt-constructor";
+/** Max Q/A turns in a single Socratic block before the eval is forced to conclude. */
+export const SOCRATIC_MAX_TURNS = 4;
+
+// ============================================================================
+// Grading / Eval Prompts (pass-through to prompt constructor)
+// ============================================================================
+
+export { constructGradePrompt, constructSocraticEvalPrompt } from "./prompt-constructor";
 
 // ============================================================================
 // Re-exports for convenience

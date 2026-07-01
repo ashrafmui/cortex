@@ -9,17 +9,20 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = (await request.json().catch(() => null)) as { goal?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as
+    | { goal?: unknown; conceptId?: unknown }
+    | null;
   const goal = body?.goal;
   if (typeof goal !== "string" || goal.trim() === "") {
     return Response.json({ error: "Missing 'goal' in request body" }, { status: 400 });
   }
+  const conceptId = typeof body?.conceptId === "string" ? body.conceptId : undefined;
 
   try {
     const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
       .map(dbToSnapshot);
 
-    const { sessionState, prompt } = initSession(crypto.randomUUID(), user.id, goal, concepts);
+    const { sessionState, prompt } = initSession(crypto.randomUUID(), user.id, goal, concepts, conceptId);
 
     const raw = await callLLM({
       systemPrompt: prompt.systemPrompt,
@@ -44,9 +47,10 @@ export async function POST(request: Request) {
       }
     }
 
+    const conceptTopic = sessionState.currentConcept?.topic;
     const exchanges = [
-      { role: "user", content: goal, mode: prompt.mode, timestamp: new Date() },
-      { role: "assistant", content: raw, mode: prompt.mode, timestamp: new Date() },
+      { role: "user", content: goal, mode: prompt.mode, concept: conceptTopic, timestamp: new Date() },
+      { role: "assistant", content: raw, mode: prompt.mode, concept: conceptTopic, timestamp: new Date() },
     ];
 
     await prisma.session.create({

@@ -67,7 +67,14 @@ export interface SessionExchange {
   role: "user" | "assistant";
   content: string;
   mode: SessionMode;
+  concept?: string; // topic of the concept this exchange was about (for rehydration)
   timestamp: Date;
+}
+
+/** One completed question/answer pair inside an ongoing Socratic dialogue. */
+export interface SocraticTurn {
+  question: string;
+  userAnswer: string;
 }
 
 /** Running state of an active session, held in memory during the session. */
@@ -81,6 +88,8 @@ export interface SessionState {
   totalExchanges: number; // total exchanges this session
   conceptsHit: string[]; // concept IDs touched so far
   exchanges: SessionExchange[];
+  /** Completed Q/A pairs within the current SOCRATIC block; reset when the block concludes. */
+  socraticTurns?: SocraticTurn[];
   startedAt: Date;
 }
 
@@ -146,6 +155,14 @@ export interface SocraticResponse {
   hints: string[];
   guidance_direction: string; // what the question is leading toward
   concepts_probed: string[];
+}
+
+/** LLM verdict after a learner replies mid-Socratic dialogue. */
+export interface SocraticEvalResponse {
+  understanding_achieved: boolean; // true → conclude the block and move on
+  follow_up_question: string | null; // next question if not yet understood
+  hints: string[]; // stepping-stone hints for the follow-up
+  guidance_direction: string; // what the follow-up leads toward
 }
 
 export interface ReviewResponse {
