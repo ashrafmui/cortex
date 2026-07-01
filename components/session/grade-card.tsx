@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { QuizGradeResponse } from "@/lib/orchestrator/types";
 
-export function GradeCard({ data }: { data: QuizGradeResponse }) {
+export function GradeCard({ data, className }: { data: QuizGradeResponse; className?: string }) {
   const pct = Math.round(data.score * 100);
   const color =
     data.score >= 0.7
@@ -11,7 +11,7 @@ export function GradeCard({ data }: { data: QuizGradeResponse }) {
         : "text-red-600 dark:text-red-400";
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border bg-background px-4 py-3 text-sm leading-relaxed max-w-[85%]">
+    <div className={cn("flex flex-col gap-2 rounded-2xl border bg-background px-4 py-3 text-sm leading-relaxed max-w-[85%]", className)}>
       <div className="flex items-start gap-2">
         <span className={cn("font-semibold tabular-nums shrink-0", color)}>
           {pct}%

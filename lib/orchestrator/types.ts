@@ -125,6 +125,7 @@ export interface SM2Result {
 export interface TeachResponse {
   explanation: string;
   check_question: string;
+  hints: string[];
   concepts_introduced: string[];
 }
 
@@ -142,6 +143,7 @@ export interface QuizGradeResponse {
 
 export interface SocraticResponse {
   question: string;
+  hints: string[];
   guidance_direction: string; // what the question is leading toward
   concepts_probed: string[];
 }
@@ -149,5 +151,6 @@ export interface SocraticResponse {
 export interface ReviewResponse {
   question: string;
   rubric: string;
+  hints: string[];
   context_reminder: string; // brief recap to jog memory
 }

@@ -88,13 +88,15 @@ INSTRUCTIONS:
 2. Use concrete examples, analogies, or code snippets appropriate to the level.
 3. Keep the explanation focused — cover ONE key idea thoroughly rather than skimming many.
 4. End with exactly ONE comprehension check question that tests whether the learner understood the core idea.
-5. List 1-3 sub-concepts or related concepts that were introduced in your explanation.
+5. Write 2-3 progressive hints for the check_question. Each hint reveals slightly more without giving the answer away. Hint 1 is a gentle nudge; hint 3 is nearly the answer.
+6. List 1-3 sub-concepts or related concepts that were introduced in your explanation.
 ${JSON_INSTRUCTION}
 
 Respond with this exact JSON structure:
 {
   "explanation": "Your explanation here (use \\n for line breaks)",
   "check_question": "A single question to verify understanding",
+  "hints": ["Subtle nudge toward the answer", "More direct hint", "Almost gives it away"],
   "concepts_introduced": ["concept1", "concept2"]
 }`;
 }
@@ -185,12 +187,14 @@ INSTRUCTIONS:
 2. The question should build on what they might already know and connect to something concrete.
 3. Do NOT explain the concept. Do NOT give the answer. Guide with questions only.
 4. Include a brief internal note about what direction you're guiding them toward (this helps the orchestrator track progress).
-5. List the specific sub-concepts your question probes.
+5. Write 2-3 progressive stepping-stone hints. Each hint nudges the learner one step closer to answering the question without revealing the insight directly.
+6. List the specific sub-concepts your question probes.
 ${JSON_INSTRUCTION}
 
 Respond with this exact JSON structure:
 {
   "question": "Your Socratic question here",
+  "hints": ["First stepping stone", "Second stepping stone closer to the insight"],
   "guidance_direction": "What understanding this question leads toward",
   "concepts_probed": ["concept1", "concept2"]
 }`;
@@ -205,7 +209,7 @@ function buildReviewPrompt(
 
 TOPIC: ${concept.topic}${concept.parentTopic ? `\nPARENT TOPIC: ${concept.parentTopic}` : ""}
 DIFFICULTY LEVEL: ${tier}
-LAST REVIEWED: ${concept.lastReviewed?.toISOString() ?? "never"}
+LAST REVIEWED: ${concept.lastReviewed ? new Date(concept.lastReviewed).toISOString() : "never"}
 REVIEW INTERVAL: ${concept.reviewInterval} days (this concept is due or overdue)
 CURRENT MASTERY: ${concept.mastery.toFixed(2)}
 ${recentExchangeContext(sessionState)}
@@ -215,13 +219,15 @@ INSTRUCTIONS:
 2. Then ask a recall question that tests whether they still understand the concept.
 3. Include a grading rubric.
 4. The question should be at the ${tier} level — review doesn't mean easy.
+5. Write 2-3 progressive memory-jogging hints for the recall question. Hint 1 is a gentle cue; hint 3 nearly restates the answer.
 ${JSON_INSTRUCTION}
 
 Respond with this exact JSON structure:
 {
   "context_reminder": "Brief reminder about this concept",
   "question": "Your recall question here",
-  "rubric": "What a 1.0 answer looks like vs. 0.5 vs. 0.0"
+  "rubric": "What a 1.0 answer looks like vs. 0.5 vs. 0.0",
+  "hints": ["Gentle memory cue", "More direct prompt", "Nearly restates the answer"]
 }`;
 }
 

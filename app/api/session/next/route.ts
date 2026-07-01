@@ -17,44 +17,52 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid sessionState" }, { status: 400 });
   }
 
-  const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
-    .map(dbToSnapshot);
-
-  const stateAfterUser = body?.userMessage
-    ? recordExchange(sessionState, "user", body.userMessage)
-    : sessionState;
-
-  const { prompt, shouldEndSession } = getNextAction(concepts, stateAfterUser);
-
-  const raw = await callLLM({
-    systemPrompt: prompt.systemPrompt,
-    userMessage: body?.userMessage ?? "Continue.",
-    mode: prompt.mode,
-  });
-
-  let parsed: Record<string, unknown>;
   try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return Response.json({ error: "LLM returned malformed JSON", raw }, { status: 502 });
-  }
+    const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
+      .map(dbToSnapshot);
 
-  const stateAfterAssistant = recordExchange(stateAfterUser, "assistant", raw);
+    const stateAfterUser = body?.userMessage
+      ? recordExchange(sessionState, "user", body.userMessage)
+      : sessionState;
 
-  await prisma.session.update({
-    where: { id: sessionState.sessionId },
-    data: {
+    const { prompt, shouldEndSession } = getNextAction(concepts, stateAfterUser);
+
+    const raw = await callLLM({
+      systemPrompt: prompt.systemPrompt,
+      userMessage: body?.userMessage ?? "Continue.",
       mode: prompt.mode,
-      messages: JSON.parse(JSON.stringify(stateAfterAssistant.exchanges)),
-      conceptsHit: stateAfterAssistant.conceptsHit,
-    },
-  });
+    });
 
-  return Response.json({
-    sessionState: stateAfterAssistant,
-    mode: prompt.mode,
-    difficulty: prompt.difficultyTier,
-    response: parsed,
-    shouldEndSession,
-  });
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return Response.json({ error: "LLM returned malformed JSON", raw }, { status: 502 });
+    }
+
+    const stateAfterAssistant = recordExchange(stateAfterUser, "assistant", raw);
+
+    await prisma.session.update({
+      where: { id: sessionState.sessionId },
+      data: {
+        mode: prompt.mode,
+        messages: JSON.parse(JSON.stringify(stateAfterAssistant.exchanges)),
+        conceptsHit: stateAfterAssistant.conceptsHit,
+      },
+    });
+
+    return Response.json({
+      sessionState: stateAfterAssistant,
+      mode: prompt.mode,
+      difficulty: prompt.difficultyTier,
+      response: parsed,
+      shouldEndSession,
+    });
+  } catch (e) {
+    console.error("[/api/session/next]", e);
+    return Response.json(
+      { error: e instanceof Error ? e.message : "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import type { QuizResponse } from "@/lib/orchestrator/types";
 
-export function QuizCard({ data }: { data: QuizResponse }) {
+export function QuizCard({ data, className }: { data: QuizResponse; className?: string }) {
   const [hintsOpen, setHintsOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed max-w-[85%]">
+    <div className={cn("flex flex-col gap-2 rounded-2xl bg-muted px-4 py-3 text-sm leading-relaxed max-w-[85%]", className)}>
       <p className="font-medium">{data.question}</p>
       {(data.hints ?? []).length > 0 && (
         <button

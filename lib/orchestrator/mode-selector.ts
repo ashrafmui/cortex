@@ -341,7 +341,7 @@ function buildReasonString(
     case SessionMode.QUIZ:
       return `"${concept.topic}" mastery at ${m} — testing with quiz`;
     case SessionMode.REVIEW:
-      return `"${concept.topic}" is due for review — mastery ${m}, last reviewed ${concept.lastReviewed?.toISOString() ?? "never"}`;
+      return `"${concept.topic}" is due for review — mastery ${m}, last reviewed ${concept.lastReviewed ? new Date(concept.lastReviewed).toISOString() : "never"}`;
   }
 }
 

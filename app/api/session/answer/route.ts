@@ -37,69 +37,77 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const gradePrompt = constructGradePrompt(sessionState.currentConcept, question, answer, rubric);
-
-  const raw = await callLLM({
-    systemPrompt: gradePrompt,
-    userMessage: answer,
-    mode: "GRADE",
-  });
-
-  let grade: { score: number; reasoning: string; correct_answer: string };
   try {
-    grade = JSON.parse(raw);
-  } catch {
-    return Response.json({ error: "LLM returned malformed grade JSON", raw }, { status: 502 });
-  }
+    const gradePrompt = constructGradePrompt(sessionState.currentConcept, question, answer, rubric);
 
-  const { updatedConcept } = processQuizResult(sessionState.currentConcept, grade.score, confidence);
+    const raw = await callLLM({
+      systemPrompt: gradePrompt,
+      userMessage: answer,
+      mode: "GRADE",
+    });
 
-  await prisma.$transaction([
-    prisma.conceptNode.update({
-      where: { id: sessionState.currentConcept.id },
-      data: updatedConcept,
-    }),
-    prisma.quizResult.create({
+    let grade: { score: number; reasoning: string; correct_answer: string };
+    try {
+      grade = JSON.parse(raw);
+    } catch {
+      return Response.json({ error: "LLM returned malformed grade JSON", raw }, { status: 502 });
+    }
+
+    const { updatedConcept } = processQuizResult(sessionState.currentConcept, grade.score, confidence);
+
+    await prisma.$transaction([
+      prisma.conceptNode.update({
+        where: { id: sessionState.currentConcept.id },
+        data: updatedConcept,
+      }),
+      prisma.quizResult.create({
+        data: {
+          conceptId: sessionState.currentConcept.id,
+          score: grade.score,
+          confidence: confidence ?? null,
+          question,
+          answer,
+          feedback: grade.reasoning,
+        },
+      }),
+    ]);
+
+    const stateAfter = recordExchange(
+      recordExchange(sessionState, "user", answer),
+      "assistant",
+      raw
+    );
+
+    const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
+      .map(dbToSnapshot);
+
+    const { prompt, shouldEndSession } = getNextAction(concepts, stateAfter);
+
+    await prisma.session.update({
+      where: { id: sessionState.sessionId },
       data: {
-        conceptId: sessionState.currentConcept.id,
-        score: grade.score,
-        confidence: confidence ?? null,
-        question,
-        answer,
-        feedback: grade.reasoning,
+        mode: prompt.mode,
+        messages: JSON.parse(JSON.stringify(stateAfter.exchanges)),
+        conceptsHit: stateAfter.conceptsHit,
       },
-    }),
-  ]);
+    });
 
-  const stateAfter = recordExchange(
-    recordExchange(sessionState, "user", answer),
-    "assistant",
-    raw
-  );
-
-  const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
-    .map(dbToSnapshot);
-
-  const { prompt, shouldEndSession } = getNextAction(concepts, stateAfter);
-
-  await prisma.session.update({
-    where: { id: sessionState.sessionId },
-    data: {
-      mode: prompt.mode,
-      messages: JSON.parse(JSON.stringify(stateAfter.exchanges)),
-      conceptsHit: stateAfter.conceptsHit,
-    },
-  });
-
-  return Response.json({
-    grade,
-    masteryUpdate: updatedConcept,
-    nextAction: {
-      mode: prompt.mode,
-      difficulty: prompt.difficultyTier,
-      systemPrompt: prompt.systemPrompt,
-    },
-    sessionState: stateAfter,
-    shouldEndSession,
-  });
+    return Response.json({
+      grade,
+      masteryUpdate: updatedConcept,
+      nextAction: {
+        mode: prompt.mode,
+        difficulty: prompt.difficultyTier,
+        systemPrompt: prompt.systemPrompt,
+      },
+      sessionState: stateAfter,
+      shouldEndSession,
+    });
+  } catch (e) {
+    console.error("[/api/session/answer]", e);
+    return Response.json(
+      { error: e instanceof Error ? e.message : "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

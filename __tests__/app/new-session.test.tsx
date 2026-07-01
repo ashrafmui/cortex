@@ -6,6 +6,12 @@ vi.mock("@/lib/greetings", () => ({
   getGreeting: () => "Good morning",
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+  usePathname: () => "/new-session",
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 import NewSession from "@/app/(app)/new-session/page";
 
 // ── Shared fetch mock helpers ────────────────────────────────────────────────
@@ -33,8 +39,17 @@ function mockFetch(response: unknown, ok = true) {
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 describe("NewSession page", () => {
+  beforeEach(() => {
+    // Default stub — concepts fetch returns empty list; individual tests override as needed
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ concepts: [] }) })
+    );
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe("empty state", () => {
@@ -43,27 +58,31 @@ describe("NewSession page", () => {
       await screen.findByText("Good morning");
     });
 
-    it("renders the mode selector with all four modes", () => {
+    it("renders the goal input", () => {
       render(<NewSession />);
-      expect(screen.getByRole("button", { name: /teach/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /quiz/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /socratic/i })).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /review/i })).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Describe what you want to learn…")).toBeInTheDocument();
     });
 
-    it("renders the text input", () => {
+    it("does not render mode selector buttons", () => {
       render(<NewSession />);
-      expect(screen.getByPlaceholderText("Ask anything")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /teach/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /quiz/i })).not.toBeInTheDocument();
     });
 
     it("does not submit when the input is empty", async () => {
-      const fetchSpy = vi.fn();
+      const fetchSpy = vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ concepts: [] }),
+      });
       vi.stubGlobal("fetch", fetchSpy);
       const user = userEvent.setup();
       render(<NewSession />);
       const sendBtn = screen.getByRole("button", { name: "" }); // ArrowUp button
       await user.click(sendBtn);
-      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalledWith(
+        "/api/session/start",
+        expect.anything()
+      );
     });
   });
 
@@ -84,7 +103,7 @@ describe("NewSession page", () => {
       vi.stubGlobal("fetch", fetchSpy);
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Learn pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
       await user.keyboard("{Enter}");
       expect(fetchSpy).toHaveBeenCalledWith(
         "/api/session/start",
@@ -99,7 +118,7 @@ describe("NewSession page", () => {
       vi.stubGlobal("fetch", mockFetch(teachResponse));
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Learn pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
       await user.keyboard("{Enter}");
       await screen.findByText("A pointer stores a memory address.");
     });
@@ -108,27 +127,45 @@ describe("NewSession page", () => {
       vi.stubGlobal("fetch", mockFetch(teachResponse));
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Learn pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
       await user.keyboard("{Enter}");
       await screen.findByText("What happens when you dereference a null pointer?");
     });
 
-    it("renders the user's message as a bubble", async () => {
+    it("shows the goal in the session header after starting", async () => {
       vi.stubGlobal("fetch", mockFetch(teachResponse));
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Learn pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
       await user.keyboard("{Enter}");
       await screen.findByText("Learn pointers");
+    });
+
+    it("shows the mode badge for the current block", async () => {
+      vi.stubGlobal("fetch", mockFetch(teachResponse));
+      const user = userEvent.setup();
+      render(<NewSession />);
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
+      await user.keyboard("{Enter}");
+      await screen.findByText("Teaching");
     });
 
     it("shows an error message when the API fails", async () => {
       vi.stubGlobal("fetch", mockFetch({ error: "Server error" }, false));
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Learn pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
       await user.keyboard("{Enter}");
       await screen.findByText("Server error");
+    });
+
+    it("shows inline text input inside the active TEACH block", async () => {
+      vi.stubGlobal("fetch", mockFetch(teachResponse));
+      const user = userEvent.setup();
+      render(<NewSession />);
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Learn pointers");
+      await user.keyboard("{Enter}");
+      await screen.findByPlaceholderText("Your response…");
     });
   });
 
@@ -148,7 +185,7 @@ describe("NewSession page", () => {
       vi.stubGlobal("fetch", mockFetch(quizResponse));
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Quiz me on pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Quiz me on pointers");
       await user.keyboard("{Enter}");
       await screen.findByPlaceholderText("Write your answer…");
     });
@@ -157,23 +194,21 @@ describe("NewSession page", () => {
       vi.stubGlobal("fetch", mockFetch(quizResponse));
       const user = userEvent.setup();
       render(<NewSession />);
-      await user.type(screen.getByPlaceholderText("Ask anything"), "Quiz me on pointers");
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Quiz me on pointers");
       await user.keyboard("{Enter}");
       await screen.findByText("Confidence:");
       expect(screen.getByRole("button", { name: /low/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /medium/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /high/i })).toBeInTheDocument();
     });
-  });
 
-  describe("mode selector", () => {
-    it("toggles active state when a mode is clicked", async () => {
-      render(<NewSession />);
+    it("shows the Quiz mode badge in the block header", async () => {
+      vi.stubGlobal("fetch", mockFetch(quizResponse));
       const user = userEvent.setup();
-      const quizBtn = screen.getByRole("button", { name: /quiz/i });
-      await user.click(quizBtn);
-      // After clicking Quiz, it should become active (primary background)
-      expect(quizBtn).toHaveClass("bg-primary");
+      render(<NewSession />);
+      await user.type(screen.getByPlaceholderText("Describe what you want to learn…"), "Quiz me on pointers");
+      await user.keyboard("{Enter}");
+      await screen.findByText("Quiz");
     });
   });
 });
