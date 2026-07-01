@@ -17,6 +17,7 @@ import {
   type OrchestratorDecision,
   type SessionState,
   type SessionExchange,
+  type SocraticTurn,
 } from "./types";
 
 // ============================================================================
@@ -200,6 +201,51 @@ Respond with this exact JSON structure:
 }`;
 }
 
+function buildSocraticEvalPrompt(
+  concept: ConceptSnapshot,
+  tier: DifficultyTier,
+  turns: SocraticTurn[],
+  latestMessage: string,
+  turnsRemaining: number
+): string {
+  const history = turns
+    .map((t, i) => `Q${i + 1} (tutor): ${t.question}\nLearner: ${t.userAnswer}`)
+    .join("\n\n");
+
+  const finalTurnNote =
+    turnsRemaining <= 1
+      ? `IMPORTANT: This is the FINAL turn of this dialogue. The learner has worked through several questions already. Lean toward concluding (set "understanding_achieved": true) so the session can progress — only keep it false if the learner is clearly still lost on the core idea.`
+      : `Keep probing only if there is a genuine gap or misconception. Do not drag out the dialogue once the core idea is grasped.`;
+
+  return `You are a Socratic tutor evaluating whether a learner has reached understanding of "${concept.topic}" through guided questioning.
+
+TOPIC: ${concept.topic}${concept.parentTopic ? `\nPARENT TOPIC: ${concept.parentTopic}` : ""}
+DIFFICULTY LEVEL: ${tier}
+LEVEL DESCRIPTION: ${TIER_DESCRIPTIONS[tier]}
+CURRENT MASTERY: ${concept.mastery.toFixed(2)}
+
+DIALOGUE SO FAR:
+${history}
+
+LATEST LEARNER MESSAGE: "${latestMessage}"
+
+INSTRUCTIONS:
+1. Judge whether the learner has now demonstrated genuine understanding of the core idea behind "${concept.topic}".
+2. If they HAVE → set "understanding_achieved": true and "follow_up_question": null. Do not ask anything further.
+3. If they have NOT → set "understanding_achieved": false and write ONE follow-up question that targets the specific gap or misconception in their latest message. Never explain the concept or reveal the answer — guide with a question only.
+4. ${finalTurnNote}
+5. When asking a follow-up, provide 2-3 progressive stepping-stone hints. When concluding, return an empty hints array.
+${JSON_INSTRUCTION}
+
+Respond with this exact JSON structure:
+{
+  "understanding_achieved": false,
+  "follow_up_question": "Your next Socratic question, or null if concluding",
+  "hints": ["First stepping stone", "Second stepping stone closer to the insight"],
+  "guidance_direction": "What understanding this question leads toward"
+}`;
+}
+
 function buildReviewPrompt(
   concept: ConceptSnapshot,
   tier: DifficultyTier,
@@ -299,4 +345,19 @@ export function constructGradePrompt(
   rubric: string
 ): string {
   return buildQuizGradePrompt(concept, question, learnerAnswer, rubric);
+}
+
+/**
+ * Build the prompt that evaluates a learner's reply during an ongoing
+ * Socratic dialogue. The LLM decides whether to conclude the block
+ * (understanding achieved) or ask a follow-up question.
+ */
+export function constructSocraticEvalPrompt(
+  concept: ConceptSnapshot,
+  tier: DifficultyTier,
+  turns: SocraticTurn[],
+  latestMessage: string,
+  turnsRemaining: number
+): string {
+  return buildSocraticEvalPrompt(concept, tier, turns, latestMessage, turnsRemaining);
 }

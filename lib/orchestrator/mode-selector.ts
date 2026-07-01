@@ -154,9 +154,9 @@ function c_matchesGoal(concept: ConceptSnapshot, goal: string): boolean {
  *
  * Decision tree (from PRD Section 4.3):
  *   - New concept (exposure 0)          → TEACH
- *   - Seen before, mastery < 0.4        → SOCRATIC
- *   - Mastery 0.4 – 0.7                 → QUIZ
- *   - Due for review                    → REVIEW
+ *   - Seen before, mastery < 0.4        → SOCRATIC (takes priority over review)
+ *   - Due for review, mastery ≥ 0.4     → REVIEW
+ *   - Mastery 0.4 – 0.7, not due        → QUIZ
  *   - Mastery > 0.7, not due            → QUIZ at higher difficulty
  */
 export function selectMode(
@@ -170,14 +170,16 @@ export function selectMode(
     return SessionMode.TEACH;
   }
 
-  // Due for review → review mode
-  if (isDueForReview(concept)) {
-    return SessionMode.REVIEW;
-  }
-
-  // Struggling → Socratic guided discovery
+  // Struggling → Socratic guided discovery. This is checked BEFORE review:
+  // a graded recall test on a concept the learner is failing isn't productive —
+  // they need scaffolded questioning first, even if the card is overdue.
   if (effectiveMastery < MASTERY_THRESHOLDS.SOCRATIC_CEILING) {
     return SessionMode.SOCRATIC;
+  }
+
+  // Due for review (and mastery is high enough to test recall) → review mode
+  if (isDueForReview(concept)) {
+    return SessionMode.REVIEW;
   }
 
   // Moderate mastery → quiz to test retention

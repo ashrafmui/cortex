@@ -133,11 +133,11 @@ export default function SessionSummaryPage() {
     <div className="mx-auto w-full max-w-2xl px-4 py-10 flex flex-col gap-8">
       {/* Back link */}
       <Link
-        href="/dashboard"
+        href="/new-session"
         className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground w-fit transition-colors"
       >
         <ArrowLeftIcon className="h-4 w-4" />
-        Dashboard
+        New Session
       </Link>
 
       {/* Header */}
