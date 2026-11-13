@@ -331,6 +331,9 @@ export default function SessionPage() {
   // ── End session ───────────────────────────────────────────────────────────
 
   const handleEndSession = () => {
+    // Record the end time server-side. Fire-and-forget (keepalive survives the
+    // navigation) so a slow or failed request never blocks the summary page.
+    fetch(`/api/session/${sessionId}/end`, { method: "POST", keepalive: true }).catch(() => {});
     try {
       sessionStorage.setItem(
         "cortex:session-summary",

@@ -1,47 +1,41 @@
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { initSession, extractNewConcepts } from "@/lib/orchestrator";
-import { dbToSnapshot } from "@/lib/orchestrator/db-mapping";
-import { callLLM } from "@/lib/llm";
+import { BLOCK_SCHEMAS } from "@/lib/orchestrator/schemas";
+import { callLLMJson } from "@/lib/llm";
+import {
+  MAX_GOAL_LENGTH,
+  errorResponse,
+  loadConcepts,
+  readJsonBody,
+  requireText,
+  requireUserId,
+} from "@/lib/session/http";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-  const body = (await request.json().catch(() => null)) as
-    | { goal?: unknown; conceptId?: unknown }
-    | null;
-  const goal = body?.goal;
-  if (typeof goal !== "string" || goal.trim() === "") {
-    return Response.json({ error: "Missing 'goal' in request body" }, { status: 400 });
-  }
-  const conceptId = typeof body?.conceptId === "string" ? body.conceptId : undefined;
-
   try {
-    const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
-      .map(dbToSnapshot);
+    const userId = await requireUserId();
+    const body = await readJsonBody(request);
+    const goal = requireText(body.goal, "goal", MAX_GOAL_LENGTH).trim();
+    // Only ever matched against this user's own concepts inside initSession.
+    const conceptId = typeof body.conceptId === "string" ? body.conceptId : undefined;
 
-    const { sessionState, prompt } = initSession(crypto.randomUUID(), user.id, goal, concepts, conceptId);
+    const concepts = await loadConcepts(userId);
+    const { sessionState, prompt } = initSession(crypto.randomUUID(), userId, goal, concepts, conceptId);
 
-    const raw = await callLLM({
-      systemPrompt: prompt.systemPrompt,
-      userMessage: `I want to learn about: ${goal}`,
-      mode: prompt.mode,
-    });
+    const { data: response, raw } = await callLLMJson(
+      {
+        systemPrompt: prompt.systemPrompt,
+        userMessage: `I want to learn about: ${goal}`,
+        mode: prompt.mode,
+      },
+      BLOCK_SCHEMAS[prompt.mode]
+    );
 
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return Response.json({ error: "LLM returned malformed JSON", raw }, { status: 502 });
-    }
-
-    if (Array.isArray(parsed.concepts_introduced)) {
-      const newConcepts = extractNewConcepts(parsed.concepts_introduced as string[], concepts, goal);
+    if ("concepts_introduced" in response && response.concepts_introduced.length > 0) {
+      const newConcepts = extractNewConcepts(response.concepts_introduced, concepts, goal);
       if (newConcepts.length > 0) {
         await prisma.conceptNode.createMany({
-          data: newConcepts.map((c) => ({ userId: user.id, topic: c.topic, parentTopic: c.parentTopic })),
+          data: newConcepts.map((c) => ({ userId, topic: c.topic, parentTopic: c.parentTopic })),
           skipDuplicates: true,
         });
       }
@@ -56,7 +50,7 @@ export async function POST(request: Request) {
     await prisma.session.create({
       data: {
         id: sessionState.sessionId,
-        userId: user.id,
+        userId,
         goal,
         mode: prompt.mode,
         messages: JSON.parse(JSON.stringify(exchanges)),
@@ -68,13 +62,9 @@ export async function POST(request: Request) {
       sessionState: { ...sessionState, exchanges, totalExchanges: 2, exchangeCount: 2 },
       mode: prompt.mode,
       difficulty: prompt.difficultyTier,
-      response: parsed,
+      response,
     });
   } catch (e) {
-    console.error("[/api/session/start]", e);
-    return Response.json(
-      { error: e instanceof Error ? e.message : "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse(e, "/api/session/start");
   }
 }
