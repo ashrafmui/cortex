@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import {
   getNextAction,
@@ -6,67 +5,71 @@ import {
   constructSocraticEvalPrompt,
   SOCRATIC_MAX_TURNS,
   SessionMode,
+  type ConceptSnapshot,
   type SessionState,
 } from "@/lib/orchestrator";
-import type { SocraticEvalResponse } from "@/lib/orchestrator/types";
-import { dbToSnapshot } from "@/lib/orchestrator/db-mapping";
-import { callLLM } from "@/lib/llm";
+import { BLOCK_SCHEMAS, SocraticEvalResponseSchema } from "@/lib/orchestrator/schemas";
+import { callLLMJson } from "@/lib/llm";
+import {
+  errorResponse,
+  loadConcepts,
+  loadOpenSession,
+  readJsonBody,
+  requireText,
+  requireUserId,
+} from "@/lib/session/http";
+import { findPendingBlock, reconcileSessionState } from "@/lib/session/server-state";
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
-  const body = (await request.json().catch(() => null)) as
-    | { sessionState?: SessionState; userMessage?: string; question?: string }
-    | null;
-  const sessionState = body?.sessionState;
-  if (!sessionState || sessionState.userId !== user.id) {
-    return Response.json({ error: "Invalid sessionState" }, { status: 400 });
-  }
-
   try {
+    const userId = await requireUserId();
+    const body = await readJsonBody(request);
+    const claimed = body.sessionState as { sessionId?: unknown } | null | undefined;
+    const session = await loadOpenSession(userId, claimed?.sessionId);
+    const userMessage =
+      body.userMessage == null ? undefined : requireText(body.userMessage, "userMessage");
+
+    const concepts = await loadConcepts(userId);
+    const sessionState = reconcileSessionState(session, concepts, body.sessionState);
+
     // ── Socratic dialogue: evaluate the reply, loop or conclude ──────────────
+    // The question being answered comes from the stored log, not the request.
+    const pending = findPendingBlock(session.messages);
     if (
+      userMessage !== undefined &&
+      pending?.mode === SessionMode.SOCRATIC &&
       sessionState.currentMode === SessionMode.SOCRATIC &&
-      sessionState.currentConcept &&
-      typeof body?.userMessage === "string" &&
-      typeof body?.question === "string"
+      sessionState.currentConcept
     ) {
-      return await handleSocraticReply(user.id, sessionState, body.userMessage, body.question);
+      const question = typeof pending.response.question === "string" ? pending.response.question : "";
+      return await handleSocraticReply(sessionState, concepts, userMessage, question);
     }
 
     // ── Default: advance to the next block ───────────────────────────────────
-    const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
-      .map(dbToSnapshot);
-
-    const stateAfterUser = body?.userMessage
-      ? recordExchange(sessionState, "user", body.userMessage)
+    const stateAfterUser = userMessage
+      ? recordExchange(sessionState, "user", userMessage)
       : sessionState;
 
     const { prompt, shouldEndSession } = getNextAction(concepts, stateAfterUser);
 
-    const raw = await callLLM({
-      systemPrompt: prompt.systemPrompt,
-      userMessage: body?.userMessage ?? "Continue.",
-      mode: prompt.mode,
-    });
-
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      return Response.json({ error: "LLM returned malformed JSON", raw }, { status: 502 });
-    }
+    const { data: response, raw } = await callLLMJson(
+      {
+        systemPrompt: prompt.systemPrompt,
+        userMessage: userMessage ?? "Continue.",
+        mode: prompt.mode,
+      },
+      BLOCK_SCHEMAS[prompt.mode]
+    );
 
     const stateAfterAssistant = recordExchange(stateAfterUser, "assistant", raw);
 
     await prisma.session.update({
-      where: { id: sessionState.sessionId },
+      where: { id: session.id },
       data: {
         mode: prompt.mode,
         messages: JSON.parse(JSON.stringify(stateAfterAssistant.exchanges)),
         conceptsHit: stateAfterAssistant.conceptsHit,
+        ...(shouldEndSession ? { endedAt: new Date() } : {}),
       },
     });
 
@@ -74,15 +77,11 @@ export async function POST(request: Request) {
       sessionState: stateAfterAssistant,
       mode: prompt.mode,
       difficulty: prompt.difficultyTier,
-      response: parsed,
+      response,
       shouldEndSession,
     });
   } catch (e) {
-    console.error("[/api/session/next]", e);
-    return Response.json(
-      { error: e instanceof Error ? e.message : "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse(e, "/api/session/next");
   }
 }
 
@@ -92,8 +91,8 @@ export async function POST(request: Request) {
  * advances to the next block.
  */
 async function handleSocraticReply(
-  userId: string,
   sessionState: SessionState,
+  concepts: ConceptSnapshot[],
   userMessage: string,
   question: string
 ): Promise<Response> {
@@ -110,18 +109,10 @@ async function handleSocraticReply(
     turnsRemaining
   );
 
-  const raw = await callLLM({
-    systemPrompt: evalPrompt,
-    userMessage,
-    mode: SessionMode.SOCRATIC,
-  });
-
-  let evalRes: SocraticEvalResponse;
-  try {
-    evalRes = JSON.parse(raw);
-  } catch {
-    return Response.json({ error: "LLM returned malformed Socratic eval JSON", raw }, { status: 502 });
-  }
+  const { data: evalRes, raw } = await callLLMJson(
+    { systemPrompt: evalPrompt, userMessage, mode: SessionMode.SOCRATIC },
+    SocraticEvalResponseSchema
+  );
 
   // Record the exchange (learner reply + tutor evaluation) in history.
   const stateAfter = recordExchange(
@@ -153,8 +144,8 @@ async function handleSocraticReply(
       difficulty: concept.difficultyTier,
       response: {
         question: evalRes.follow_up_question,
-        hints: evalRes.hints ?? [],
-        guidance_direction: evalRes.guidance_direction ?? "",
+        hints: evalRes.hints,
+        guidance_direction: evalRes.guidance_direction,
         concepts_probed: [],
       },
     });
@@ -168,23 +159,12 @@ async function handleSocraticReply(
     exchangeCount: 0,
   };
 
-  const concepts = (await prisma.conceptNode.findMany({ where: { userId } }))
-    .map(dbToSnapshot);
-
   const { prompt, shouldEndSession } = getNextAction(concepts, advancingState);
 
-  const nextRaw = await callLLM({
-    systemPrompt: prompt.systemPrompt,
-    userMessage: "Continue.",
-    mode: prompt.mode,
-  });
-
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(nextRaw);
-  } catch {
-    return Response.json({ error: "LLM returned malformed JSON", raw: nextRaw }, { status: 502 });
-  }
+  const { data: response, raw: nextRaw } = await callLLMJson(
+    { systemPrompt: prompt.systemPrompt, userMessage: "Continue.", mode: prompt.mode },
+    BLOCK_SCHEMAS[prompt.mode]
+  );
 
   const finalState = recordExchange(advancingState, "assistant", nextRaw);
 
@@ -194,6 +174,7 @@ async function handleSocraticReply(
       mode: prompt.mode,
       messages: JSON.parse(JSON.stringify(finalState.exchanges)),
       conceptsHit: finalState.conceptsHit,
+      ...(shouldEndSession ? { endedAt: new Date() } : {}),
     },
   });
 
@@ -204,7 +185,7 @@ async function handleSocraticReply(
     sessionState: finalState,
     mode: prompt.mode,
     difficulty: prompt.difficultyTier,
-    response: parsed,
+    response,
     shouldEndSession,
   });
 }

@@ -101,12 +101,21 @@ export async function getWeeklyData(userId: string) {
 
   const sessions = await prisma.session.findMany({
     where: { userId, startedAt: { gte: fourteenDaysAgo } },
-    select: { startedAt: true, endedAt: true },
+    select: { startedAt: true, endedAt: true, messages: true },
   });
 
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const minutesOf = (s: { startedAt: Date; endedAt: Date | null }) =>
-    s.endedAt ? Math.max(0, (s.endedAt.getTime() - s.startedAt.getTime()) / 60000) : 0;
+  // Sessions the learner walked away from never get an endedAt, so fall back to
+  // the time of their last exchange.
+  const lastActivity = (messages: unknown): number | null => {
+    if (!Array.isArray(messages) || messages.length === 0) return null;
+    const ts = Date.parse((messages[messages.length - 1] as { timestamp?: string })?.timestamp ?? "");
+    return Number.isNaN(ts) ? null : ts;
+  };
+  const minutesOf = (s: { startedAt: Date; endedAt: Date | null; messages: unknown }) => {
+    const end = s.endedAt?.getTime() ?? lastActivity(s.messages);
+    return end ? Math.max(0, (end - s.startedAt.getTime()) / 60000) : 0;
+  };
 
   const weekly: { day: string; minutes: number; sessions: number }[] = [];
   let thisWeekMinutes = 0;

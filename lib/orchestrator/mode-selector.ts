@@ -315,7 +315,7 @@ export function makeDecision(
 // Helpers
 // ============================================================================
 
-function createPlaceholderConcept(goal: string): ConceptSnapshot {
+export function createPlaceholderConcept(goal: string): ConceptSnapshot {
   return {
     id: "placeholder",
     topic: goal,

@@ -1,35 +1,23 @@
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { dbToSnapshot } from "@/lib/orchestrator/db-mapping";
 import { rehydrateSession } from "@/lib/session/rehydrate";
+import { HttpError, errorResponse, loadConcepts, requireUserId } from "@/lib/session/http";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const { sessionId } = await params;
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-
   try {
-    const session = await prisma.session.findUnique({ where: { id: sessionId } });
-    if (!session || session.userId !== user.id) {
-      return Response.json({ error: "Session not found" }, { status: 404 });
-    }
+    const { sessionId } = await params;
+    const userId = await requireUserId();
 
-    const concepts = (await prisma.conceptNode.findMany({ where: { userId: user.id } }))
-      .map(dbToSnapshot);
+    const session = await prisma.session.findFirst({ where: { id: sessionId, userId } });
+    if (!session) throw new HttpError(404, "Session not found");
 
+    const concepts = await loadConcepts(userId);
     const { goal, sessionState, blocks, sessionEnded } = rehydrateSession(session, concepts);
 
     return Response.json({ goal, sessionState, blocks, sessionEnded });
   } catch (e) {
-    console.error("[/api/session/[sessionId]]", e);
-    return Response.json(
-      { error: e instanceof Error ? e.message : "Internal server error" },
-      { status: 500 }
-    );
+    return errorResponse(e, "/api/session/[sessionId]");
   }
 }
